@@ -2,6 +2,12 @@
 name = "cloud-storage-job-runner"
 version = "0.1.0"
 edition = "2021"
+authors = ["Nick Chaloult <nchaloult.com>"]
+description = """
+A simple tool for downloading files from a storage bucket in the cloud,
+running a job on each of them, and uploading the results back to the
+cloud.
+"""
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
