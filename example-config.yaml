@@ -3,9 +3,11 @@ jobs:
     cloud-service-provider: gcp
     path-to-auth-key: "path/to/service/account/or/credentials/file"
     bucket-name: bucket-name
-    path-to-inputs: "path/to/some/dir/in/your/bucket"
-    path-to-outputs: "path/to/some/dir/in/your/bucket"
+    path-to-remote-inputs: "path/to/some/dir/in/your/bucket"
+    path-to-local-inputs: "path/to/save/inputs/on/disk"
+    path-to-local-outputs: "path/to/save/outputs/on/disk"
+    path-to-remote-outputs: "path/to/some/dir/in/your/bucket"
     steps:
-      - "echo [i]"
-      - "ls [i]"
-      - "sh your_script.sh [i]"
+      - "echo [path-to-local-inputs]"
+      - "ls [path-to-local-inputs]"
+      - "sh your_script.sh --input-dir [path-to-local-inputs] --output-dir [path-to-local-outputs]"
