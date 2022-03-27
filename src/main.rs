@@ -32,5 +32,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         serde_yaml::from_reader(config_file).expect("config file's contents are invalid");
     println!("{config:#?}");
 
+    match cli.job_name {
+        Some(j) => {
+            if !config.jobs.contains_key(&j) {
+                panic!("\"{j}\" not found in the provided config file");
+            }
+            todo!()
+        }
+        None => todo!(),
+    }
+
     Ok(())
 }
