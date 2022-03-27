@@ -1,0 +1,11 @@
+jobs:
+  your-job-name-here:
+    cloud-service-provider: gcp
+    path-to-auth-key: "path/to/service/account/or/credentials/file"
+    bucket-name: bucket-name
+    path-to-inputs: "path/to/some/dir/in/your/bucket"
+    path-to-outputs: "path/to/some/dir/in/your/bucket"
+    steps:
+      - "echo [i]"
+      - "ls [i]"
+      - "sh your_script.sh [i]"
