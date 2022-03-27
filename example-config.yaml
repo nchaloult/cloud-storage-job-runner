@@ -1,13 +1,13 @@
 jobs:
-  your-job-name-here:
-    cloud-service-provider: gcp
-    path-to-auth-key: "path/to/service/account/or/credentials/file"
-    bucket-name: bucket-name
-    path-to-remote-inputs: "path/to/some/dir/in/your/bucket"
-    path-to-local-inputs: "path/to/save/inputs/on/disk"
-    path-to-local-outputs: "path/to/save/outputs/on/disk"
-    path-to-remote-outputs: "path/to/some/dir/in/your/bucket"
+  your_job_name_here:
+    cloud_service_provider: GCP
+    path_to_auth_key: "path/to/service/account/or/credentials/file"
+    bucket_name: your_bucket_name
+    path_to_remote_inputs: "path/to/some/dir/in/your/bucket"
+    path_to_local_inputs: "path/to/save/inputs/on/disk"
+    path_to_local_outputs: "path/to/save/outputs/on/disk"
+    path_to_remote_outputs: "path/to/some/dir/in/your/bucket"
     steps:
-      - "echo [path-to-local-inputs]"
-      - "ls [path-to-local-inputs]"
-      - "sh your_script.sh --input-dir [path-to-local-inputs] --output-dir [path-to-local-outputs]"
+      - "echo [path_to_local_inputs]"
+      - "ls [path_to_local_inputs]"
+      - "sh your_script.sh --input-dir [path_to_local_inputs] --output-dir [path_to_local_outputs]"

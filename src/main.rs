@@ -1,5 +1,8 @@
+use std::error::Error;
+use std::fs::File;
 use std::path::PathBuf;
 
+use cloud_storage_job_runner::Config;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -19,7 +22,15 @@ struct Cli {
     job_name: Option<String>,
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     let cli = Cli::from_args();
     println!("{cli:?}");
+
+    // Parse the config file.
+    let config_file = File::open(cli.config).expect("config file couldn't be opened");
+    let config: Config =
+        serde_yaml::from_reader(config_file).expect("config file's contents are invalid");
+    println!("{config:#?}");
+
+    Ok(())
 }
