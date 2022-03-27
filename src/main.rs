@@ -1,6 +1,4 @@
-use std::error::Error;
-use std::fs::File;
-use std::path::PathBuf;
+use std::{error::Error, fs::File, path::PathBuf};
 
 use cloud_storage_job_runner::Config;
 use structopt::StructOpt;
@@ -33,13 +31,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("{config:#?}");
 
     match cli.job_name {
-        Some(j) => {
-            if !config.jobs.contains_key(&j) {
-                panic!("\"{j}\" not found in the provided config file");
-            }
-            todo!()
-        }
-        None => todo!(),
+        Some(j) => config.run_one(&j)?,
+        None => config.run_all()?,
     }
 
     Ok(())
