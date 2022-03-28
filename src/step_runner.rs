@@ -5,3 +5,11 @@ pub trait StepRunner {
     /// handle to it.
     fn run_step(&self, step: &str) -> io::Result<process::Child>;
 }
+
+pub struct ShellStepRunner {}
+
+impl StepRunner for ShellStepRunner {
+    fn run_step(&self, step: &str) -> io::Result<process::Child> {
+        todo!()
+    }
+}
