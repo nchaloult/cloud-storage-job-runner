@@ -22,6 +22,21 @@ pub struct Job {
     pub steps: Vec<String>,
 }
 
+impl Job {
+    /// Executes a job, from start to finish.
+    fn run<B, S>(&self, bucket: &B, step_runner: &S) -> Result<(), Box<dyn Error>>
+    where
+        B: bucket::Bucket,
+        S: step_runner::StepRunner,
+    {
+        bucket.download_inputs(&self.path_to_remote_inputs, &self.path_to_local_inputs)?;
+        for step in &self.steps {
+            step_runner.run_step(step)?;
+        }
+        bucket.upload_outputs(&self.path_to_local_outputs, &self.path_to_remote_outputs)
+    }
+}
+
 #[derive(Debug)]
 pub struct JobNotFoundError {
     /// Name of job that cannot be found in the config file.
@@ -54,6 +69,10 @@ impl Config {
     }
 
     /// Runs the job with the provided `job_name`.
+    ///
+    /// Fetches the [Job] with the name `job_name`, grabs the appropriate
+    /// [bucket::Bucket] and [step_runner::StepRunner] implementations, and
+    /// calls the job's `run()` method.
     pub fn run_one(&self, job_name: &str) -> Result<(), Box<dyn Error>> {
         let job = match self.jobs.get(job_name) {
             Some(j) => j,
@@ -72,26 +91,6 @@ impl Config {
             }
         };
         let step_runner = step_runner::ShellStepRunner {};
-        let job_runner = JobRunner {
-            bucket: Box::new(bucket),
-            step_runner: Box::new(step_runner),
-        };
-
-        job_runner
-            .bucket
-            .download_inputs(&job.path_to_remote_inputs, &job.path_to_local_inputs)?;
-        for step in &job.steps {
-            job_runner.step_runner.run_step(step)?;
-        }
-        job_runner
-            .bucket
-            .upload_outputs(&job.path_to_local_outputs, &job.path_to_remote_outputs)?;
-
-        Ok(())
+        job.run(&bucket, &step_runner)
     }
-}
-
-struct JobRunner {
-    bucket: Box<dyn bucket::Bucket>,
-    step_runner: Box<dyn step_runner::StepRunner>,
 }
