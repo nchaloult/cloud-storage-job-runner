@@ -1,3 +1,6 @@
+mod bucket;
+mod step_runner;
+
 use std::{collections::HashMap, error::Error, fmt, path::PathBuf};
 
 use serde::Deserialize;
@@ -51,15 +54,44 @@ impl Config {
     }
 
     /// Runs the job with the provided `job_name`.
-    pub fn run_one(&self, job_name: &str) -> Result<(), JobNotFoundError> {
-        // Input validation.
-        if !self.jobs.contains_key(job_name) {
-            return Err(JobNotFoundError {
-                // TODO: Revisit this cloning. Can you get fancy with lifetimes?
-                job_name: job_name.to_string(),
-            });
-        }
+    pub fn run_one(&self, job_name: &str) -> Result<(), Box<dyn Error>> {
+        let job = match self.jobs.get(job_name) {
+            Some(j) => j,
+            None => {
+                return Err(Box::new(JobNotFoundError {
+                    // TODO: Revisit this cloning. Can you get fancy with
+                    // lifetimes?
+                    job_name: job_name.to_string(),
+                }));
+            }
+        };
 
-        todo!()
+        let bucket = match job.cloud_service_provider {
+            CloudServiceProvider::GCP => {
+                bucket::GoogleCloudStorageBucket::new(&job.path_to_auth_key)?
+            }
+        };
+        let step_runner = step_runner::ShellStepRunner {};
+        let job_runner = JobRunner {
+            bucket: Box::new(bucket),
+            step_runner: Box::new(step_runner),
+        };
+
+        job_runner
+            .bucket
+            .download_inputs(&job.path_to_remote_inputs, &job.path_to_local_inputs)?;
+        for step in &job.steps {
+            job_runner.step_runner.run_step(step)?;
+        }
+        job_runner
+            .bucket
+            .upload_outputs(&job.path_to_local_outputs, &job.path_to_remote_outputs)?;
+
+        Ok(())
     }
+}
+
+struct JobRunner {
+    bucket: Box<dyn bucket::Bucket>,
+    step_runner: Box<dyn step_runner::StepRunner>,
 }
