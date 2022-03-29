@@ -74,16 +74,11 @@ impl Config {
     /// [bucket::Bucket] and [step_runner::StepRunner] implementations, and
     /// calls the job's `run()` method.
     pub fn run_one(&self, job_name: &str) -> Result<(), Box<dyn Error>> {
-        let job = match self.jobs.get(job_name) {
-            Some(j) => j,
-            None => {
-                return Err(Box::new(JobNotFoundError {
-                    // TODO: Revisit this cloning. Can you get fancy with
-                    // lifetimes?
-                    job_name: job_name.to_string(),
-                }));
-            }
-        };
+        let job = self.jobs.get(job_name).ok_or(JobNotFoundError {
+            // TODO: Revisit this cloning. Can you get fancy with
+            // lifetimes?
+            job_name: job_name.to_string(),
+        })?;
 
         let bucket = match job.cloud_service_provider {
             CloudServiceProvider::GCP => {
