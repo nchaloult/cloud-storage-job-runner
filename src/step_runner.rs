@@ -57,7 +57,6 @@ impl StepRunner for ShellStepRunner {
         let mut command = &mut process::Command::new(program_name);
 
         for arg in iter {
-            // TODO: Write "[path_to_*_*]" substitution logic.
             command = command.arg(arg);
         }
 

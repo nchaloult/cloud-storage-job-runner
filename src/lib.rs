@@ -10,6 +10,32 @@ pub enum CloudServiceProvider {
     GCP,
 }
 
+#[derive(Debug)]
+pub struct InvalidPathError {
+    /// Name of the `path_to_*` key that has a `PathBuf` that can't be
+    /// stringified.
+    ///
+    /// # Examples
+    /// - `"path_to_remote_inputs"`
+    /// - `"path_to_local_inputs"`
+    /// - `"path_to_local_outputs"`
+    /// - `"path_to_remote_outputs"`
+    path_key_name: String,
+}
+
+impl Error for InvalidPathError {}
+
+impl fmt::Display for InvalidPathError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // TODO: Revisit message. Is this super helpful/explanatory?
+        write!(
+            f,
+            "Value for \"{}\" in config file can't be stringified",
+            self.path_key_name
+        )
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Job {
     pub cloud_service_provider: CloudServiceProvider,
@@ -31,7 +57,49 @@ impl Job {
     {
         bucket.download_inputs(&self.path_to_remote_inputs, &self.path_to_local_inputs)?;
         for step in &self.steps {
-            step_runner.run_step(step)?;
+            // TODO: Revisit this. Is there a more modular way?
+            let s = step
+                .replace(
+                    "[path_to_remote_inputs]",
+                    self.path_to_remote_inputs
+                        .to_str()
+                        .ok_or(InvalidPathError {
+                            // TODO: Revisit this cloning. Can you get fancy
+                            // with lifetimes?
+                            path_key_name: "path_to_remote_inputs".to_string(),
+                        })?,
+                )
+                .replace(
+                    "[path_to_local_inputs]",
+                    self.path_to_remote_inputs
+                        .to_str()
+                        .ok_or(InvalidPathError {
+                            // TODO: Revisit this cloning. Can you get fancy
+                            // with lifetimes?
+                            path_key_name: "path_to_local_inputs".to_string(),
+                        })?,
+                )
+                .replace(
+                    "[path_to_local_outputs]",
+                    self.path_to_remote_inputs
+                        .to_str()
+                        .ok_or(InvalidPathError {
+                            // TODO: Revisit this cloning. Can you get fancy
+                            // with lifetimes?
+                            path_key_name: "path_to_local_outputs".to_string(),
+                        })?,
+                )
+                .replace(
+                    "[path_to_remote_outputs]",
+                    self.path_to_remote_inputs
+                        .to_str()
+                        .ok_or(InvalidPathError {
+                            // TODO: Revisit this cloning. Can you get fancy
+                            // with lifetimes?
+                            path_key_name: "path_to_remote_outputs".to_string(),
+                        })?,
+                );
+            step_runner.run_step(&s)?;
         }
         bucket.upload_outputs(&self.path_to_local_outputs, &self.path_to_remote_outputs)
     }
