@@ -20,7 +20,8 @@ struct Cli {
     job_name: Option<String>,
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
     let cli = Cli::from_args();
     println!("{cli:?}");
 
