@@ -140,7 +140,6 @@ impl Config {
         for j in self.jobs.keys() {
             self.run_one(j)?;
         }
-
         Ok(())
     }
 
@@ -155,7 +154,6 @@ impl Config {
             // lifetimes?
             job_name: job_name.to_string(),
         })?;
-
         let bucket = match job.cloud_service_provider {
             CloudServiceProvider::GCP => {
                 bucket::GoogleCloudStorageBucket::new(&job.path_to_auth_key)?

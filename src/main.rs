@@ -34,6 +34,5 @@ fn main() -> Result<(), Box<dyn Error>> {
         Some(j) => config.run_one(&j)?,
         None => config.run_all()?,
     }
-
     Ok(())
 }
