@@ -1,4 +1,4 @@
-use std::{error::Error, io, path::Path};
+use std::{error::Error, path::Path};
 
 pub trait Bucket {
     /// Downloads the `path_to_remote_inputs` directory, and all its contents,
@@ -34,15 +34,10 @@ pub struct GoogleCloudStorageBucket {}
 impl GoogleCloudStorageBucket {
     /// Returns a new `GoogleCloudStorageBucket` that's authenticated and ready
     /// to download and upload files.
-    ///
-    /// # Errors
-    ///
-    /// Returns an `io::Error` if `creds` does not exist or can't be read
-    /// because of its file permissions.
-    pub fn new(creds: &Path) -> io::Result<Self> {
+    pub fn new() -> Self {
         // TODO: Authenticate. Return an error if the creds don't exist or are
         // inaccessible due to permissions problems.
-        Ok(Self {})
+        Self {}
     }
 }
 

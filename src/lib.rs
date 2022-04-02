@@ -39,7 +39,6 @@ impl fmt::Display for InvalidPathError {
 #[derive(Debug, Deserialize)]
 pub struct Job {
     pub cloud_service_provider: CloudServiceProvider,
-    pub path_to_auth_key: PathBuf,
     pub bucket_name: String,
     pub path_to_remote_inputs: PathBuf,
     pub path_to_local_inputs: PathBuf,
@@ -155,9 +154,7 @@ impl Config {
             job_name: job_name.to_string(),
         })?;
         let bucket = match job.cloud_service_provider {
-            CloudServiceProvider::GCP => {
-                bucket::GoogleCloudStorageBucket::new(&job.path_to_auth_key)?
-            }
+            CloudServiceProvider::GCP => bucket::GoogleCloudStorageBucket::new(),
         };
         let step_runner = step_runner::ShellStepRunner {};
         job.run(&bucket, &step_runner)

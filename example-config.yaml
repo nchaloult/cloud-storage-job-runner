@@ -1,7 +1,6 @@
 jobs:
   your_job_name_here:
     cloud_service_provider: GCP
-    path_to_auth_key: "path/to/service/account/or/credentials/file"
     bucket_name: your_bucket_name
     path_to_remote_inputs: "path/to/some/dir/in/your/bucket"
     path_to_local_inputs: "path/to/save/inputs/on/disk"
