@@ -56,6 +56,16 @@ impl Job {
         S: step_runner::StepRunner,
     {
         bucket.download_inputs(&self.path_to_remote_inputs, &self.path_to_local_inputs)?;
+        for step in self.get_steps()? {
+            step_runner.run_step(&step)?;
+        }
+        bucket.upload_outputs(&self.path_to_local_outputs, &self.path_to_remote_outputs)
+    }
+
+    /// Returns a list of this [Job]'s steps with all of the `[path_to_*_*]`
+    /// tags substituted with their corresponding values.
+    fn get_steps(&self) -> Result<Vec<String>, InvalidPathError> {
+        let mut steps = Vec::new();
         for step in &self.steps {
             // TODO: Revisit this. Is there a more modular way?
             let s = step
@@ -71,17 +81,15 @@ impl Job {
                 )
                 .replace(
                     "[path_to_local_inputs]",
-                    self.path_to_remote_inputs
-                        .to_str()
-                        .ok_or(InvalidPathError {
-                            // TODO: Revisit this cloning. Can you get fancy
-                            // with lifetimes?
-                            path_key_name: "path_to_local_inputs".to_string(),
-                        })?,
+                    self.path_to_local_inputs.to_str().ok_or(InvalidPathError {
+                        // TODO: Revisit this cloning. Can you get fancy
+                        // with lifetimes?
+                        path_key_name: "path_to_local_inputs".to_string(),
+                    })?,
                 )
                 .replace(
                     "[path_to_local_outputs]",
-                    self.path_to_remote_inputs
+                    self.path_to_local_outputs
                         .to_str()
                         .ok_or(InvalidPathError {
                             // TODO: Revisit this cloning. Can you get fancy
@@ -91,7 +99,7 @@ impl Job {
                 )
                 .replace(
                     "[path_to_remote_outputs]",
-                    self.path_to_remote_inputs
+                    self.path_to_remote_outputs
                         .to_str()
                         .ok_or(InvalidPathError {
                             // TODO: Revisit this cloning. Can you get fancy
@@ -99,9 +107,9 @@ impl Job {
                             path_key_name: "path_to_remote_outputs".to_string(),
                         })?,
                 );
-            step_runner.run_step(&s)?;
+            steps.push(s);
         }
-        bucket.upload_outputs(&self.path_to_local_outputs, &self.path_to_remote_outputs)
+        Ok(steps)
     }
 }
 
