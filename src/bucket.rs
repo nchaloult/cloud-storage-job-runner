@@ -1,5 +1,7 @@
 use std::{error::Error, fmt, path::Path};
 
+use cloud_storage::Client;
+
 #[derive(Debug)]
 struct CredentialsNotFoundError {}
 
@@ -47,15 +49,17 @@ pub trait Bucket {
     ) -> Result<(), Box<dyn Error>>;
 }
 
-pub struct GoogleCloudStorageBucket {}
+pub struct GoogleCloudStorageBucket {
+    client: Client,
+}
 
 impl GoogleCloudStorageBucket {
     /// Returns a new `GoogleCloudStorageBucket` that's authenticated and ready
     /// to download and upload files.
     pub fn new() -> Self {
-        // TODO: Authenticate. Return an error if the creds don't exist or are
-        // inaccessible due to permissions problems.
-        Self {}
+        Self {
+            client: Client::default(),
+        }
     }
 }
 
