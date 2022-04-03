@@ -23,13 +23,12 @@ struct Cli {
 #[tokio::main]
 async fn main() {
     let cli = Cli::from_args();
-    println!("{cli:?}");
 
-    // Parse the config file.
+    // TODO: Display friendlier error messages instead of panicking in these
+    // situations.
     let config_file = File::open(cli.config).expect("config file couldn't be opened");
     let config: Config =
         serde_yaml::from_reader(config_file).expect("config file's contents are invalid");
-    println!("{config:#?}");
 
     match cli.job_name {
         Some(j) => {
