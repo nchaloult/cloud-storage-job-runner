@@ -1,4 +1,9 @@
-use std::{env, error::Error, fmt, fs, path::Path};
+use std::{
+    env,
+    error::Error,
+    fmt, fs, io,
+    path::{Path, PathBuf},
+};
 
 use async_trait::async_trait;
 use cloud_storage::{Client, ListRequest};
@@ -143,7 +148,9 @@ impl super::Bucket for CloudStorageBucket {
         path_to_local_outputs: &Path,
         path_to_remote_outputs: &Path,
     ) -> Result<(), Box<dyn Error>> {
-        todo!()
+        let files = find_all_files(path_to_local_outputs)?;
+        println!("{files:?}");
+        Ok(())
     }
 }
 
@@ -169,4 +176,21 @@ mod is_object_a_directory_tests {
         assert!(!super::is_object_a_directory("foo/bar"));
         assert!(!super::is_object_a_directory("foo/bar/baz"));
     }
+}
+
+fn find_all_files(dir: &Path) -> io::Result<Vec<PathBuf>> {
+    let mut files = Vec::new();
+    if dir.is_dir() {
+        for entry in fs::read_dir(dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_dir() {
+                // TODO: Should we be using extend()?
+                files.append(&mut find_all_files(&path)?)
+            } else {
+                files.push(path);
+            }
+        }
+    }
+    Ok(files)
 }
