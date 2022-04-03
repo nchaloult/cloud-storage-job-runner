@@ -22,36 +22,6 @@ impl fmt::Display for CredentialsNotFoundError {
     }
 }
 
-#[async_trait]
-pub trait Bucket {
-    /// Downloads the `path_to_remote_inputs` directory, and all its contents,
-    /// from a cloud storage bucket, and saves them on disk at
-    /// `path_to_local_inputs`.
-    ///
-    /// # Errors
-    ///
-    /// Returns an `io::Error` if the `path_to_local_inputs` directory doesn't
-    /// exist on disk, and this function fails to create it.
-    async fn download_inputs(
-        &self,
-        path_to_remote_inputs: &Path,
-        path_to_local_inputs: &Path,
-    ) -> Result<(), Box<dyn Error>>;
-
-    /// Uploads the `path_to_local_outputs` directory, and all its contents,
-    /// on disk to a cloud storage bucket at `path_to_remote_outputs`.
-    ///
-    /// # Errors
-    ///
-    /// Returns an `io::Error` if the `path_to_local_outputs` directory doesn't
-    /// exist on disk.
-    async fn upload_outputs(
-        &self,
-        path_to_local_outputs: &Path,
-        path_to_remote_outputs: &Path,
-    ) -> Result<(), Box<dyn Error>>;
-}
-
 pub struct GoogleCloudStorageBucket {
     bucket_name: String,
     client: Client,
@@ -92,7 +62,7 @@ impl GoogleCloudStorageBucket {
 }
 
 #[async_trait]
-impl Bucket for GoogleCloudStorageBucket {
+impl super::Bucket for GoogleCloudStorageBucket {
     async fn download_inputs(
         &self,
         path_to_remote_inputs: &Path,
@@ -100,7 +70,7 @@ impl Bucket for GoogleCloudStorageBucket {
     ) -> Result<(), Box<dyn Error>> {
         let path_to_remote_inputs_as_string = path_to_remote_inputs
             .to_str()
-            .ok_or(super::InvalidPathError {
+            .ok_or(super::super::InvalidPathError {
                 path_key_name: "path_to_remote_inputs".to_string(),
             })?
             .to_string();
@@ -115,7 +85,7 @@ impl Bucket for GoogleCloudStorageBucket {
             match object_list {
                 Ok(list) => {
                     for object in list.items {
-                        if !super::is_object_a_directory(&object.name) {
+                        if !is_object_a_directory(&object.name) {
                             self.download_object(&object.name, path_to_local_inputs)
                                 .await?;
                         }
@@ -134,4 +104,8 @@ impl Bucket for GoogleCloudStorageBucket {
     ) -> Result<(), Box<dyn Error>> {
         todo!()
     }
+}
+
+fn is_object_a_directory(name: &str) -> bool {
+    name.ends_with('/')
 }

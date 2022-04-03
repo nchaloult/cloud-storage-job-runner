@@ -160,15 +160,10 @@ impl Config {
         let bucket = match job.cloud_service_provider {
             CloudServiceProvider::GCP => {
                 // TODO: Revisit this cloning. Can you get fancy with lifetimes?
-                bucket::GoogleCloudStorageBucket::new(job.bucket_name.clone())
+                bucket::gcp::GoogleCloudStorageBucket::new(job.bucket_name.clone())
             }
         };
         let step_runner = step_runner::ShellStepRunner {};
         job.run(&bucket, &step_runner).await
     }
-}
-
-// TODO: Move this func into its own module.
-fn is_object_a_directory(name: &str) -> bool {
-    name.ends_with('/')
 }
