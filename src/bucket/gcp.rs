@@ -89,7 +89,8 @@ impl CloudStorageBucket {
     async fn download_object(
         &self,
         remote_file_path: &str,
-        local_destination_dir: &Path,
+        path_to_remote_inputs: &Path,
+        path_to_local_inputs: &Path,
     ) -> Result<(), Box<dyn Error>> {
         let contents = self
             .client
@@ -97,12 +98,34 @@ impl CloudStorageBucket {
             .download(&self.bucket_name, remote_file_path)
             .await?;
 
-        let file_name = remote_file_path.split('/').last().unwrap();
-        let local_file_path = local_destination_dir.join(file_name);
+        // TODO: Are these the right errors we should be returning? Feels kinda
+        // tightly coupled to our config. I feel like `download_object()`
+        // shouldn't know that these Paths came from a config file.
+        let path_to_remote_inputs_as_string =
+            path_to_remote_inputs
+                .to_str()
+                .ok_or(super::super::InvalidPathError {
+                    path_key_name: "path_to_remote_inputs".to_string(),
+                })?;
+        let path_to_local_inputs_as_string =
+            path_to_local_inputs
+                .to_str()
+                .ok_or(super::super::InvalidPathError {
+                    path_key_name: "path_to_local_inputs".to_string(),
+                })?;
+        // TODO: Is there a better way to do this than to go from PathBufs to
+        // Strings and back to a PathBuf?
+        let local_file_path_as_string = remote_file_path.replace(
+            path_to_remote_inputs_as_string,
+            path_to_local_inputs_as_string,
+        );
+        let local_file_path = Path::new(&local_file_path_as_string);
 
-        fs::create_dir_all(local_destination_dir)?;
+        // If the file lives inside a directory (or directories), make those.
+        if let Some(local_file_dir) = local_file_path.parent() {
+            fs::create_dir_all(local_file_dir)?;
+        }
         fs::write(local_file_path, contents)?;
-
         Ok(())
     }
 }
@@ -132,8 +155,12 @@ impl super::Bucket for CloudStorageBucket {
                 Ok(list) => {
                     for object in list.items {
                         if !is_object_a_directory(&object.name) {
-                            self.download_object(&object.name, path_to_local_inputs)
-                                .await?;
+                            self.download_object(
+                                &object.name,
+                                path_to_remote_inputs,
+                                path_to_local_inputs,
+                            )
+                            .await?;
                         }
                     }
                 }
