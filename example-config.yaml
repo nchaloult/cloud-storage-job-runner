@@ -7,6 +7,5 @@ jobs:
     path_to_local_outputs: "path/to/save/outputs/on/disk"
     path_to_remote_outputs: "path/to/some/dir/in/your/bucket"
     steps:
-      - "echo [path_to_local_inputs]"
-      - "ls [path_to_local_inputs]"
+      - "find [path_to_local_inputs] -type f"
       - "sh your_script.sh --input-dir [path_to_local_inputs] --output-dir [path_to_local_outputs]"
