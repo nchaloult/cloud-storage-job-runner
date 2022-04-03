@@ -16,7 +16,7 @@ impl fmt::Display for CredentialsNotFoundError {
             "Could not find service account credentials. Looked for a \
         path to a JSON file on disk in the \"SERVICE_ACCOUNT\" and \
         \"GOOGLE_APPLICATION_CREDENTIALS\" environment variables, and looked \
-        for JSON credentials themselves in the \"SERVICE_ACCOUNT_JSON\" and \
+        for credentials as JSON in the \"SERVICE_ACCOUNT_JSON\" and \
         \"GOOGLE_APPLICATION_CREDENTIALS_JSON\" environment variables."
         )
     }
