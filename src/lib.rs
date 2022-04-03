@@ -49,16 +49,20 @@ pub struct Job {
 
 impl Job {
     /// Executes a job, from start to finish.
-    fn run<B, S>(&self, bucket: &B, step_runner: &S) -> Result<(), Box<dyn Error>>
+    async fn run<B, S>(&self, bucket: &B, step_runner: &S) -> Result<(), Box<dyn Error>>
     where
         B: bucket::Bucket,
         S: step_runner::StepRunner,
     {
-        bucket.download_inputs(&self.path_to_remote_inputs, &self.path_to_local_inputs)?;
+        bucket
+            .download_inputs(&self.path_to_remote_inputs, &self.path_to_local_inputs)
+            .await?;
         for step in self.get_steps()? {
             step_runner.run_step(&step)?;
         }
-        bucket.upload_outputs(&self.path_to_local_outputs, &self.path_to_remote_outputs)
+        bucket
+            .upload_outputs(&self.path_to_local_outputs, &self.path_to_remote_outputs)
+            .await
     }
 
     /// Returns a list of this [Job]'s steps with all of the `[path_to_*_*]`
@@ -133,11 +137,11 @@ pub struct Config {
 
 impl Config {
     /// Runs all jobs.
-    pub fn run_all(&self) -> Result<(), Box<dyn Error>> {
-        // TODO: Parallelize?
-        // Maybe not. What if two jobs' path_to_local_inputs are the same?
+    pub async fn run_all(&self) -> Result<(), Box<dyn Error>> {
+        // TODO: Find some way to block on each of these calls? What if two
+        // jobs' path_to_local_inputs are the same?
         for j in self.jobs.keys() {
-            self.run_one(j)?;
+            self.run_one(j).await?;
         }
         Ok(())
     }
@@ -147,16 +151,24 @@ impl Config {
     /// Fetches the [Job] with the name `job_name`, grabs the appropriate
     /// [bucket::Bucket] and [step_runner::StepRunner] implementations, and
     /// calls the job's `run()` method.
-    pub fn run_one(&self, job_name: &str) -> Result<(), Box<dyn Error>> {
+    pub async fn run_one(&self, job_name: &str) -> Result<(), Box<dyn Error>> {
         let job = self.jobs.get(job_name).ok_or(JobNotFoundError {
             // TODO: Revisit this cloning. Can you get fancy with
             // lifetimes?
             job_name: job_name.to_string(),
         })?;
         let bucket = match job.cloud_service_provider {
-            CloudServiceProvider::GCP => bucket::GoogleCloudStorageBucket::new(),
+            CloudServiceProvider::GCP => {
+                // TODO: Revisit this cloning. Can you get fancy with lifetimes?
+                bucket::GoogleCloudStorageBucket::new(job.bucket_name.clone())
+            }
         };
         let step_runner = step_runner::ShellStepRunner {};
-        job.run(&bucket, &step_runner)
+        job.run(&bucket, &step_runner).await
     }
+}
+
+// TODO: Move this func into its own module.
+fn is_object_a_directory(name: &str) -> bool {
+    name.ends_with('/')
 }

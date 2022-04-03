@@ -32,8 +32,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     println!("{config:#?}");
 
     match cli.job_name {
-        Some(j) => config.run_one(&j)?,
-        None => config.run_all()?,
+        Some(j) => config.run_one(&j).await?,
+        None => config.run_all().await?,
     }
     Ok(())
 }
