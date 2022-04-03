@@ -137,6 +137,7 @@ dependencies = [
 name = "cloud-storage-job-runner"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "cloud-storage",
  "serde",
  "serde_yaml",
