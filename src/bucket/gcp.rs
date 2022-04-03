@@ -22,13 +22,13 @@ impl fmt::Display for CredentialsNotFoundError {
     }
 }
 
-pub struct GoogleCloudStorageBucket {
+pub struct CloudStorageBucket {
     bucket_name: String,
     client: Client,
 }
 
-impl GoogleCloudStorageBucket {
-    /// Returns a new `GoogleCloudStorageBucket` that's authenticated and ready
+impl CloudStorageBucket {
+    /// Returns a new `CloudStorageBucket` that's authenticated and ready
     /// to download and upload files.
     pub fn new(bucket_name: String) -> Self {
         Self {
@@ -62,7 +62,7 @@ impl GoogleCloudStorageBucket {
 }
 
 #[async_trait]
-impl super::Bucket for GoogleCloudStorageBucket {
+impl super::Bucket for CloudStorageBucket {
     async fn download_inputs(
         &self,
         path_to_remote_inputs: &Path,
