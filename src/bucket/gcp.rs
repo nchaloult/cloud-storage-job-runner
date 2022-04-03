@@ -128,6 +128,56 @@ impl CloudStorageBucket {
         fs::write(local_file_path, contents)?;
         Ok(())
     }
+
+    async fn upload_object(
+        &self,
+        local_file_path: &Path,
+        path_to_local_outputs: &Path,
+        path_to_remote_outputs: &Path,
+    ) -> Result<(), Box<dyn Error>> {
+        // TODO: Return an error with more context instead of panicking.
+        // Something like: your operating system supports file paths that are
+        // not valid unicode, and we can't deal lol.
+        let local_file_path_as_string = local_file_path
+            .to_str()
+            .expect("csjr doesn't support paths that contain invalid unicode");
+        // TODO: Are these the right errors we should be returning? Feels kinda
+        // tightly coupled to our config. I feel like `download_object()`
+        // shouldn't know that these Paths came from a config file.
+        let path_to_local_outputs_as_string =
+            path_to_local_outputs
+                .to_str()
+                .ok_or(super::super::InvalidPathError {
+                    path_key_name: "path_to_local_outputs".to_string(),
+                })?;
+        let path_to_remote_outputs_as_string =
+            path_to_remote_outputs
+                .to_str()
+                .ok_or(super::super::InvalidPathError {
+                    path_key_name: "path_to_remote_outputs".to_string(),
+                })?;
+        // TODO: Is there a better way to do this than to go from PathBufs to
+        // Strings?
+        let remote_file_path_as_string = local_file_path_as_string.replace(
+            path_to_local_outputs_as_string,
+            path_to_remote_outputs_as_string,
+        );
+
+        let contents = fs::read(&local_file_path)?;
+        let mime_type = mime_guess::from_path(&local_file_path)
+            .first_or_octet_stream()
+            .to_string();
+        self.client
+            .object()
+            .create(
+                &self.bucket_name,
+                contents,
+                &remote_file_path_as_string,
+                &mime_type,
+            )
+            .await?;
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -175,8 +225,10 @@ impl super::Bucket for CloudStorageBucket {
         path_to_local_outputs: &Path,
         path_to_remote_outputs: &Path,
     ) -> Result<(), Box<dyn Error>> {
-        let files = find_all_files(path_to_local_outputs)?;
-        println!("{files:?}");
+        for file_path in find_all_files(path_to_local_outputs)? {
+            self.upload_object(&file_path, path_to_local_outputs, path_to_remote_outputs)
+                .await?;
+        }
         Ok(())
     }
 }
