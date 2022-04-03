@@ -160,7 +160,7 @@ impl Config {
         let bucket = match job.cloud_service_provider {
             CloudServiceProvider::GCP => {
                 // TODO: Revisit this cloning. Can you get fancy with lifetimes?
-                bucket::gcp::CloudStorageBucket::new(job.bucket_name.clone())
+                bucket::gcp::CloudStorageBucket::new(job.bucket_name.clone())?
             }
         };
         let step_runner = step_runner::ShellStepRunner {};

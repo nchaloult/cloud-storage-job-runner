@@ -1,11 +1,11 @@
-use std::{error::Error, fmt, fs, path::Path};
+use std::{env, error::Error, fmt, fs, path::Path};
 
 use async_trait::async_trait;
 use cloud_storage::{Client, ListRequest};
 use tokio_stream::StreamExt;
 
 #[derive(Debug)]
-struct CredentialsNotFoundError {}
+pub(crate) struct CredentialsNotFoundError {}
 
 impl Error for CredentialsNotFoundError {}
 
@@ -21,6 +21,48 @@ impl fmt::Display for CredentialsNotFoundError {
         )
     }
 }
+
+/// Verifies that credentials for a Google Cloud service account are present
+/// and accessible.
+///
+/// The [cloud_storage] crate panics if it can't find credentials. It checks (in
+/// the following order) if a path to a JSON file exists on disk in the
+/// `SERVICE_ACCOUNT` or `GOOGLE_APPLICATION_CREDENTIALS` environment variables,
+/// or if the credentials themselves are in the `SERVICE_ACCOUNT_JSON` or
+/// `GOOGLE_APPLICATION_CREDENTIALS_JSON` environment variables. This function
+/// is meant to return `false` in the same situations where the [cloud_storage]
+/// crate would panic so we can handle things more gracefully.
+fn are_auth_creds_present() -> bool {
+    if let Ok(path) = env::var("SERVICE_ACCOUNT") {
+        if Path::new(&path).exists() {
+            return true;
+        }
+    }
+    if let Ok(path) = env::var("GOOGLE_APPLICATION_CREDENTIALS") {
+        if Path::new(&path).exists() {
+            return true;
+        }
+    }
+    // TODO: Revisit the way we're doing this. Right now, we're just checking
+    // if the env var's contents are valid JSON.
+    if let Ok(contents) = env::var("SERVICE_ACCOUNT_JSON") {
+        if is_valid_json(&contents) {
+            return true;
+        }
+    }
+    if let Ok(contents) = env::var("GOOGLE_APPLICATION_CREDENTIALS_JSON") {
+        if is_valid_json(&contents) {
+            return true;
+        }
+    }
+    false
+}
+
+fn is_valid_json(contents: &str) -> bool {
+    // TODO: Revisit. This is pretty scrappy LOL.
+    contents.starts_with('{') && contents.ends_with('}') && contents.is_ascii()
+}
+
 pub struct CloudStorageBucket {
     bucket_name: String,
     client: Client,
@@ -29,11 +71,14 @@ pub struct CloudStorageBucket {
 impl CloudStorageBucket {
     /// Returns a new `CloudStorageBucket` that's authenticated and ready
     /// to download and upload files.
-    pub fn new(bucket_name: String) -> Self {
-        Self {
+    pub(crate) fn new(bucket_name: String) -> Result<Self, CredentialsNotFoundError> {
+        if !are_auth_creds_present() {
+            return Err(CredentialsNotFoundError {});
+        }
+        Ok(Self {
             bucket_name,
             client: Client::default(),
-        }
+        })
     }
 
     async fn download_object(
