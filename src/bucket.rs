@@ -1,4 +1,22 @@
-use std::{error::Error, path::Path};
+use std::{error::Error, fmt, path::Path};
+
+#[derive(Debug)]
+struct CredentialsNotFoundError {}
+
+impl Error for CredentialsNotFoundError {}
+
+impl fmt::Display for CredentialsNotFoundError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Could not find service account credentials. Looked for a \
+        path to a JSON file on disk in the \"SERVICE_ACCOUNT\" and \
+        \"GOOGLE_APPLICATION_CREDENTIALS\" environment variables, and looked \
+        for JSON credentials themselves in the \"SERVICE_ACCOUNT_JSON\" and \
+        \"GOOGLE_APPLICATION_CREDENTIALS_JSON\" environment variables."
+        )
+    }
+}
 
 pub trait Bucket {
     /// Downloads the `path_to_remote_inputs` directory, and all its contents,
