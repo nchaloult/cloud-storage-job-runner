@@ -1,4 +1,4 @@
-use std::{error::Error, fs::File, path::PathBuf};
+use std::{fs::File, path::PathBuf, process};
 
 use cloud_storage_job_runner::Config;
 use structopt::StructOpt;
@@ -21,7 +21,7 @@ struct Cli {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() {
     let cli = Cli::from_args();
     println!("{cli:?}");
 
@@ -32,8 +32,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
     println!("{config:#?}");
 
     match cli.job_name {
-        Some(j) => config.run_one(&j).await?,
-        None => config.run_all().await?,
-    }
-    Ok(())
+        Some(j) => {
+            if let Err(e) = config.run_one(&j).await {
+                eprintln!("{e}");
+                process::exit(1);
+            }
+        }
+        None => {
+            if let Err(e) = config.run_all().await {
+                eprintln!("{e}");
+                process::exit(1);
+            }
+        }
+    };
 }
