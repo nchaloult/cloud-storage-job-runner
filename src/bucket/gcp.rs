@@ -92,9 +92,6 @@ impl CloudStorageBucket {
             .download(&self.bucket_name, remote_file_path)
             .await?;
 
-        // TODO: This doesn't work on Windows because paths include back-slashes
-        // instead of forward-slashes. Revisit remote_file_path's type. Can it
-        // be a Path instead of a string?
         let file_name = remote_file_path.split('/').last().unwrap();
         let local_file_path = local_destination_dir.join(file_name);
 
