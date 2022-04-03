@@ -21,7 +21,6 @@ impl fmt::Display for CredentialsNotFoundError {
         )
     }
 }
-
 pub struct CloudStorageBucket {
     bucket_name: String,
     client: Client,
@@ -108,4 +107,24 @@ impl super::Bucket for CloudStorageBucket {
 
 fn is_object_a_directory(name: &str) -> bool {
     name.ends_with('/')
+}
+
+#[cfg(test)]
+mod is_object_a_directory_tests {
+    #[test]
+    fn valid_dir() {
+        assert!(super::is_object_a_directory("/"));
+        assert!(super::is_object_a_directory("foo/"));
+        assert!(super::is_object_a_directory("foo/bar/"));
+    }
+
+    #[test]
+    fn valid_object() {
+        assert!(!super::is_object_a_directory("foo.txt"));
+        assert!(!super::is_object_a_directory("foo/bar.txt"));
+        assert!(!super::is_object_a_directory("foo/bar/baz.txt"));
+        assert!(!super::is_object_a_directory("foo"));
+        assert!(!super::is_object_a_directory("foo/bar"));
+        assert!(!super::is_object_a_directory("foo/bar/baz"));
+    }
 }
