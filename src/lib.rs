@@ -63,7 +63,7 @@ impl Job {
         // strings all across the project. We shouldn't be handling that in the
         // bucket's impl logic.
         shell::status(
-            Some("Downloading"),
+            "Downloading",
             &format!(
                 "\"{}\" to \"{}\"",
                 self.path_to_remote_inputs.to_str().unwrap(),
@@ -74,7 +74,7 @@ impl Job {
             .download_inputs(&self.path_to_remote_inputs, &self.path_to_local_inputs)
             .await?;
         for step in self.get_steps()? {
-            shell::status(Some("Running"), &format!("`{step}`"));
+            shell::status("Running", &format!("`{step}`"));
             step_runner.run_step(&step)?;
         }
         // TODO: Same here: revisit these unwrap() calls.
@@ -82,7 +82,7 @@ impl Job {
         // Same situation as before where bucket.upload_outputs() is handling
         // invalid paths, but it really shouldn't.
         shell::status(
-            Some("Uploading"),
+            "Uploading",
             &format!(
                 "\"{}\" to \"{}\"",
                 self.path_to_local_outputs.to_str().unwrap(),
@@ -222,7 +222,7 @@ impl<'a> Context<'a> {
         self.job_counter += 1;
         let num_jobs = self.config.jobs.len();
         shell::status(
-            Some(&format!("[{}/{}]", self.job_counter, num_jobs)),
+            &format!("[{}/{}]", self.job_counter, num_jobs),
             &format!("Running {job_name}..."),
         );
     }
