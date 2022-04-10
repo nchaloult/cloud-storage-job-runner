@@ -1,4 +1,5 @@
 mod bucket;
+mod shell;
 mod step_runner;
 
 use std::{collections::HashMap, error::Error, fmt, path::PathBuf};
@@ -192,9 +193,9 @@ impl<'a> Context<'a> {
     fn print_running_job_status_message(&mut self, job_name: &str) {
         self.job_counter += 1;
         let num_jobs = self.config.jobs.len();
-        println!(
-            "[{}/{}] Running {}...",
-            self.job_counter, num_jobs, job_name
+        shell::status(
+            Some(&format!("[{}/{}]", self.job_counter, num_jobs)),
+            &format!("Running {job_name}..."),
         );
     }
 }
