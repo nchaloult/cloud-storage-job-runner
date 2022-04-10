@@ -55,12 +55,40 @@ impl Job {
         B: bucket::Bucket,
         S: step_runner::StepRunner,
     {
+        // TODO: Revisit these unwrap() calls.
+        //
+        // The situation is kinda weird since we're gonna check for an invalid
+        // path in bucket.download_inputs(). Honestly, need to revisit how we're
+        // handling errors to do with paths that can't be serialized as Unicode
+        // strings all across the project. We shouldn't be handling that in the
+        // bucket's impl logic.
+        shell::status(
+            Some("Downloading"),
+            &format!(
+                "\"{}\" to \"{}\"",
+                self.path_to_remote_inputs.to_str().unwrap(),
+                self.path_to_local_inputs.to_str().unwrap()
+            ),
+        );
         bucket
             .download_inputs(&self.path_to_remote_inputs, &self.path_to_local_inputs)
             .await?;
         for step in self.get_steps()? {
+            shell::status(Some("Running"), &format!("`{step}`"));
             step_runner.run_step(&step)?;
         }
+        // TODO: Same here: revisit these unwrap() calls.
+        //
+        // Same situation as before where bucket.upload_outputs() is handling
+        // invalid paths, but it really shouldn't.
+        shell::status(
+            Some("Uploading"),
+            &format!(
+                "\"{}\" to \"{}\"",
+                self.path_to_local_outputs.to_str().unwrap(),
+                self.path_to_remote_outputs.to_str().unwrap()
+            ),
+        );
         bucket
             .upload_outputs(&self.path_to_local_outputs, &self.path_to_remote_outputs)
             .await
