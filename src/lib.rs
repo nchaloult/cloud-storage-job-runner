@@ -69,12 +69,13 @@ impl Job {
                 self.path_to_remote_inputs.to_str().unwrap(),
                 self.path_to_local_inputs.to_str().unwrap()
             ),
+            true,
         );
         bucket
             .download_inputs(&self.path_to_remote_inputs, &self.path_to_local_inputs)
             .await?;
         for step in self.get_steps()? {
-            shell::status("Running", &format!("`{step}`"));
+            shell::status("Running", &format!("`{step}`"), true);
             step_runner.run_step(&step)?;
         }
         // TODO: Same here: revisit these unwrap() calls.
@@ -88,6 +89,7 @@ impl Job {
                 self.path_to_local_outputs.to_str().unwrap(),
                 self.path_to_remote_outputs.to_str().unwrap()
             ),
+            true,
         );
         bucket
             .upload_outputs(&self.path_to_local_outputs, &self.path_to_remote_outputs)
@@ -224,6 +226,7 @@ impl<'a> Context<'a> {
         shell::status(
             &format!("[{}/{}]", self.job_counter, num_jobs),
             &format!("Running {job_name}..."),
+            false,
         );
     }
 }
