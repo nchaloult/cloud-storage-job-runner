@@ -1,6 +1,6 @@
 use std::{fs::File, path::PathBuf, process};
 
-use cloud_storage_job_runner::Config;
+use cloud_storage_job_runner::{Config, Context};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -29,16 +29,17 @@ async fn main() {
     let config_file = File::open(cli.config).expect("config file couldn't be opened");
     let config: Config =
         serde_yaml::from_reader(config_file).expect("config file's contents are invalid");
+    let mut ctx = Context::new(&config);
 
     match cli.job_name {
         Some(j) => {
-            if let Err(e) = config.run_one(&j).await {
+            if let Err(e) = ctx.run_one(&j).await {
                 eprintln!("{e}");
                 process::exit(1);
             }
         }
         None => {
-            if let Err(e) = config.run_all().await {
+            if let Err(e) = ctx.run_all().await {
                 eprintln!("{e}");
                 process::exit(1);
             }

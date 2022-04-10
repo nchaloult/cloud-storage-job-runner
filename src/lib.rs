@@ -135,12 +135,26 @@ pub struct Config {
     pub jobs: HashMap<String, Job>,
 }
 
-impl Config {
+/// Collection of all the stuff that's needed to run jobs.
+pub struct Context<'a> {
+    config: &'a Config,
+    /// Counter that keeps track of which job we're currently running.
+    job_counter: u8,
+}
+
+impl<'a> Context<'a> {
+    pub fn new(config: &'a Config) -> Self {
+        Self {
+            config,
+            job_counter: 0,
+        }
+    }
+
     /// Runs all jobs.
-    pub async fn run_all(&self) -> Result<(), Box<dyn Error>> {
+    pub async fn run_all(&mut self) -> Result<(), Box<dyn Error>> {
         // TODO: Find some way to block on each of these calls? What if two
         // jobs' path_to_local_inputs are the same?
-        for j in self.jobs.keys() {
+        for j in self.config.jobs.keys() {
             self.run_one(j).await?;
         }
         Ok(())
@@ -151,8 +165,8 @@ impl Config {
     /// Fetches the [Job] with the name `job_name`, grabs the appropriate
     /// [bucket::Bucket] and [step_runner::StepRunner] implementations, and
     /// calls the job's `run()` method.
-    pub async fn run_one(&self, job_name: &str) -> Result<(), Box<dyn Error>> {
-        let job = self.jobs.get(job_name).ok_or(JobNotFoundError {
+    pub async fn run_one(&mut self, job_name: &str) -> Result<(), Box<dyn Error>> {
+        let job = self.config.jobs.get(job_name).ok_or(JobNotFoundError {
             // TODO: Revisit this cloning. Can you get fancy with
             // lifetimes?
             job_name: job_name.to_string(),
@@ -164,6 +178,16 @@ impl Config {
             }
         };
         let step_runner = step_runner::ShellStepRunner {};
+        self.print_running_job_status_message(job_name);
         job.run(&bucket, &step_runner).await
+    }
+
+    fn print_running_job_status_message(&mut self, job_name: &str) {
+        self.job_counter += 1;
+        let num_jobs = self.config.jobs.len();
+        println!(
+            "[{}/{}] Running {}...",
+            self.job_counter, num_jobs, job_name
+        );
     }
 }
