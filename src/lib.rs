@@ -2,7 +2,7 @@ mod bucket;
 mod shell;
 mod step_runner;
 
-use std::{collections::HashMap, error::Error, fmt, path::PathBuf};
+use std::{collections::HashMap, error::Error, fmt, io, path::PathBuf};
 
 use serde::Deserialize;
 
@@ -70,12 +70,12 @@ impl Job {
                 self.path_to_local_inputs.to_str().unwrap()
             ),
             true,
-        );
+        )?;
         bucket
             .download_inputs(&self.path_to_remote_inputs, &self.path_to_local_inputs)
             .await?;
         for step in self.get_steps()? {
-            shell::status("Running", &format!("`{step}`"), true);
+            shell::status("Running", &format!("`{step}`"), true)?;
             step_runner.run_step(&step)?;
         }
         // TODO: Same here: revisit these unwrap() calls.
@@ -90,7 +90,7 @@ impl Job {
                 self.path_to_remote_outputs.to_str().unwrap()
             ),
             true,
-        );
+        )?;
         bucket
             .upload_outputs(&self.path_to_local_outputs, &self.path_to_remote_outputs)
             .await
@@ -215,18 +215,18 @@ impl<'a> Context<'a> {
         let step_runner = step_runner::ShellStepRunner {};
 
         if !self.is_quiet {
-            self.print_running_job_status_message(job_name);
+            self.print_running_job_status_message(job_name)?;
         }
         job.run(&bucket, &step_runner).await
     }
 
-    fn print_running_job_status_message(&mut self, job_name: &str) {
+    fn print_running_job_status_message(&mut self, job_name: &str) -> io::Result<()> {
         self.job_counter += 1;
         let num_jobs = self.config.jobs.len();
         shell::status(
             &format!("[{}/{}]", self.job_counter, num_jobs),
             &format!("Running {job_name}..."),
             false,
-        );
+        )
     }
 }

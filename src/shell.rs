@@ -1,7 +1,18 @@
-pub(crate) fn status(prefix: &str, msg: &str, is_indented: bool) {
+use std::io::{self, Write};
+
+use termcolor::{Color::Green, ColorChoice, ColorSpec, StandardStream, WriteColor};
+
+pub(crate) fn status(prefix: &str, msg: &str, is_indented: bool) -> io::Result<()> {
+    let mut stderr = StandardStream::stderr(ColorChoice::Auto);
+    stderr.reset()?; // Just in case.
+    stderr.set_color(ColorSpec::new().set_bold(true).set_fg(Some(Green)))?;
     if is_indented {
-        println!("    {prefix} {msg}");
+        write!(stderr, "    {prefix}")?;
     } else {
-        println!("{prefix} {msg}");
+        write!(stderr, "{prefix}")?;
     }
+    stderr.reset()?;
+    stderr.set_color(ColorSpec::new().set_bold(true))?;
+    writeln!(stderr, " {msg}")?;
+    stderr.reset()
 }
