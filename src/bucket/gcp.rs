@@ -86,6 +86,10 @@ impl CloudStorageBucket {
         })
     }
 
+    /// Downloads an object's contents from GCS, and writes it to disk in the
+    /// provided `path_to_local_inputs`.
+    ///
+    /// Creates `path_to_local_inputs` if it doesn't already exist.
     async fn download_object(
         &self,
         remote_file_path: &str,
@@ -98,27 +102,34 @@ impl CloudStorageBucket {
             .download(&self.bucket_name, remote_file_path)
             .await?;
 
-        // TODO: Are these the right errors we should be returning? Feels kinda
+        // TODO: Is this the right error we should be returning? Feels kinda
         // tightly coupled to our config. I feel like `download_object()`
         // shouldn't know that these Paths came from a config file.
-        let path_to_remote_inputs_as_string =
-            path_to_remote_inputs
-                .to_str()
-                .ok_or(super::super::InvalidPathError {
-                    path_key_name: "path_to_remote_inputs".to_string(),
-                })?;
         let path_to_local_inputs_as_string =
             path_to_local_inputs
                 .to_str()
                 .ok_or(super::super::InvalidPathError {
                     path_key_name: "path_to_local_inputs".to_string(),
                 })?;
-        // TODO: Is there a better way to do this than to go from PathBufs to
-        // Strings and back to a PathBuf?
-        let local_file_path_as_string = remote_file_path.replace(
-            path_to_remote_inputs_as_string,
-            path_to_local_inputs_as_string,
-        );
+        let mut local_file_path_as_string =
+            format!("{}/{}", path_to_local_inputs_as_string, remote_file_path);
+        if path_to_remote_inputs.components().next().is_some() {
+            // TODO: Is this the right error we should be returning? Feels kinda
+            // tightly coupled to our config. I feel like `download_object()`
+            // shouldn't know that these Paths came from a config file.
+            let path_to_remote_inputs_as_string =
+                path_to_remote_inputs
+                    .to_str()
+                    .ok_or(super::super::InvalidPathError {
+                        path_key_name: "path_to_remote_inputs".to_string(),
+                    })?;
+            // TODO: Is there a better way to do this than to go from PathBufs
+            // to Strings and back to a PathBuf?
+            local_file_path_as_string = remote_file_path.replace(
+                path_to_remote_inputs_as_string,
+                path_to_local_inputs_as_string,
+            );
+        }
         let local_file_path = Path::new(&local_file_path_as_string);
 
         // If the file lives inside a directory (or directories), make those.
@@ -187,15 +198,24 @@ impl super::Bucket for CloudStorageBucket {
         path_to_remote_inputs: &Path,
         path_to_local_inputs: &Path,
     ) -> Result<(), Box<dyn Error>> {
-        let path_to_remote_inputs_as_string = path_to_remote_inputs
-            .to_str()
-            .ok_or(super::super::InvalidPathError {
-                path_key_name: "path_to_remote_inputs".to_string(),
-            })?
-            .to_string();
-        let lr = ListRequest {
-            prefix: Some(path_to_remote_inputs_as_string),
-            ..Default::default()
+        // If path_to_remote_inputs points to a folder inside the bucket, only
+        // list the objects inside that folder; otherwise, list all objects in
+        // the bucket.
+        //
+        // https://github.com/rust-lang/rust/pull/31877#issuecomment-191901957
+        let lr = if path_to_remote_inputs.components().next().is_some() {
+            let path_to_remote_inputs_as_string = path_to_remote_inputs
+                .to_str()
+                .ok_or(super::super::InvalidPathError {
+                    path_key_name: "path_to_remote_inputs".to_string(),
+                })?
+                .to_string();
+            ListRequest {
+                prefix: Some(path_to_remote_inputs_as_string),
+                ..Default::default()
+            }
+        } else {
+            ListRequest::default()
         };
         let mut object_list_stream =
             Box::pin(self.client.object().list(&self.bucket_name, lr).await?);
