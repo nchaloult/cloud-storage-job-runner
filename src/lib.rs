@@ -1,5 +1,5 @@
 mod bucket;
-mod shell;
+mod pretty_print;
 mod step_runner;
 
 use std::{collections::HashMap, error::Error, fmt, io, path::PathBuf};
@@ -62,7 +62,7 @@ impl Job {
         // handling errors to do with paths that can't be serialized as Unicode
         // strings all across the project. We shouldn't be handling that in the
         // bucket's impl logic.
-        shell::status(
+        pretty_print::status(
             "Downloading",
             &format!(
                 "\"{}\" to \"{}\"",
@@ -75,14 +75,14 @@ impl Job {
             .download_inputs(&self.path_to_remote_inputs, &self.path_to_local_inputs)
             .await?;
         for step in self.get_steps()? {
-            shell::status("Running", &format!("`{step}`"), true)?;
+            pretty_print::status("Running", &format!("`{step}`"), true)?;
             step_runner.run_step(&step)?;
         }
         // TODO: Same here: revisit these unwrap() calls.
         //
         // Same situation as before where bucket.upload_outputs() is handling
         // invalid paths, but it really shouldn't.
-        shell::status(
+        pretty_print::status(
             "Uploading",
             &format!(
                 "\"{}\" to \"{}\"",
@@ -223,7 +223,7 @@ impl<'a> Context<'a> {
     fn print_running_job_status_message(&mut self, job_name: &str) -> io::Result<()> {
         self.job_counter += 1;
         let num_jobs = self.config.jobs.len();
-        shell::status(
+        pretty_print::status(
             &format!("[{}/{}]", self.job_counter, num_jobs),
             &format!("Running {job_name}..."),
             false,
