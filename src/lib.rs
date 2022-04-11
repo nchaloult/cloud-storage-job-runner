@@ -1,5 +1,5 @@
 mod bucket;
-mod pretty_print;
+pub mod pretty_print;
 mod step_runner;
 
 use std::{collections::HashMap, error::Error, fmt, io, path::PathBuf};

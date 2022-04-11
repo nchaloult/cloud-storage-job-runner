@@ -1,6 +1,6 @@
 use std::{fs::File, path::PathBuf, process};
 
-use cloud_storage_job_runner::{Config, Context};
+use cloud_storage_job_runner::{pretty_print, Config, Context};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -33,13 +33,17 @@ async fn main() {
     match cli.job_name {
         Some(j) => {
             if let Err(e) = ctx.run_one(&j).await {
-                eprintln!("{e}");
+                if pretty_print::error(&e).is_err() {
+                    eprintln!("Something went wrong displaying an error message");
+                }
                 process::exit(1);
             }
         }
         None => {
             if let Err(e) = ctx.run_all().await {
-                eprintln!("{e}");
+                if pretty_print::error(&e).is_err() {
+                    eprintln!("Something went wrong displaying an error message");
+                }
                 process::exit(1);
             }
         }
