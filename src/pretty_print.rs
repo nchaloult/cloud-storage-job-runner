@@ -22,3 +22,14 @@ pub fn status(prefix: &str, msg: &dyn fmt::Display, is_indented: bool) -> io::Re
     writeln!(stderr, " {msg}")?;
     stderr.reset()
 }
+
+pub fn error(msg: &dyn fmt::Display) -> io::Result<()> {
+    let mut stderr = StandardStream::stderr(ColorChoice::Auto);
+    stderr.reset()?; // Just in case.
+    stderr.set_color(ColorSpec::new().set_bold(true).set_fg(Some(Red)))?;
+    write!(stderr, "Error: ")?;
+    stderr.reset()?;
+    stderr.set_color(ColorSpec::new().set_bold(true))?;
+    writeln!(stderr, "{msg}")?;
+    stderr.reset()
+}
