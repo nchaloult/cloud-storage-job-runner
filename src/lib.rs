@@ -169,18 +169,14 @@ pub struct Config {
 /// Collection of all the stuff that's needed to run jobs.
 pub struct Context<'a> {
     config: &'a Config,
-    /// Controls whether or not status messages are printed to stdout as jobs
-    /// are running.
-    is_quiet: bool,
     /// Counter that keeps track of which job we're currently running.
     job_counter: u8,
 }
 
 impl<'a> Context<'a> {
-    pub fn new(config: &'a Config, is_quiet: bool) -> Self {
+    pub fn new(config: &'a Config) -> Self {
         Self {
             config,
-            is_quiet,
             job_counter: 0,
         }
     }
@@ -214,9 +210,7 @@ impl<'a> Context<'a> {
         };
         let step_runner = step_runner::ShellStepRunner {};
 
-        if !self.is_quiet {
-            self.print_running_job_status_message(job_name)?;
-        }
+        self.print_running_job_status_message(job_name)?;
         job.run(&bucket, &step_runner).await
     }
 

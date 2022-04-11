@@ -14,9 +14,6 @@ struct Cli {
     /// Path to config file
     #[structopt(short, long, parse(from_os_str))]
     config: PathBuf,
-    /// Silence all status messages. May be useful in CI environments
-    #[structopt(short, long)]
-    quiet: bool,
     /// Name of job to run. If not present, runs all jobs specified in the provided config file
     #[structopt()]
     job_name: Option<String>,
@@ -31,7 +28,7 @@ async fn main() {
     let config_file = File::open(cli.config).expect("config file couldn't be opened");
     let config: Config =
         serde_yaml::from_reader(config_file).expect("config file's contents are invalid");
-    let mut ctx = Context::new(&config, cli.quiet);
+    let mut ctx = Context::new(&config);
 
     match cli.job_name {
         Some(j) => {
