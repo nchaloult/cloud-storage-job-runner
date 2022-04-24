@@ -1,5 +1,5 @@
 use crate::{CloudServiceProvider, PathKeyInConfig};
-use std::{error::Error, fmt::Display};
+use std::{error::Error, fmt::Display, io};
 
 /// JobRunnerError enumerates all possible errors returned by this library.
 #[derive(Debug)]
@@ -20,6 +20,9 @@ pub enum JobRunnerError {
     /// Represents when attempting to download a file from a bucket in the cloud
     /// fails.
     DownloadFromBucketError { source: Box<dyn Error> },
+
+    /// Represents all other cases of [io::Error].
+    IOError(io::Error),
 }
 
 impl Error for JobRunnerError {
@@ -29,6 +32,7 @@ impl Error for JobRunnerError {
             Self::BucketCredentialsNotFoundError(_) => None,
             Self::InvalidPathError(_) => None,
             Self::DownloadFromBucketError { source } => Some(source.as_ref()),
+            Self::IOError(_) => None,
         }
     }
 }
@@ -66,6 +70,13 @@ impl Display for JobRunnerError {
             Self::DownloadFromBucketError { source } => {
                 write!(f, "Failed to download object from bucket: {}", source)
             }
+            Self::IOError(err) => err.fmt(f),
         }
+    }
+}
+
+impl From<io::Error> for JobRunnerError {
+    fn from(err: io::Error) -> Self {
+        JobRunnerError::IOError(err)
     }
 }
