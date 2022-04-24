@@ -10,7 +10,7 @@ use structopt::StructOpt;
     version = env!("CARGO_PKG_VERSION"),
     author = env!("CARGO_PKG_AUTHORS"),
 )]
-struct Cli {
+struct Opt {
     /// Path to config file
     #[structopt(short, long, parse(from_os_str))]
     config: PathBuf,
@@ -21,16 +21,16 @@ struct Cli {
 
 #[tokio::main]
 async fn main() {
-    let cli = Cli::from_args();
+    let opt = Opt::from_args();
 
     // TODO: Display friendlier error messages instead of panicking in these
     // situations.
-    let config_file = File::open(cli.config).expect("config file couldn't be opened");
+    let config_file = File::open(opt.config).expect("config file couldn't be opened");
     let config: Config =
         serde_yaml::from_reader(config_file).expect("config file's contents are invalid");
     let mut ctx = Context::new(&config);
 
-    match cli.job_name {
+    match opt.job_name {
         Some(j) => {
             if let Err(e) = ctx.run_one(&j).await {
                 if pretty_print::error(&e).is_err() {
