@@ -29,6 +29,10 @@ pub enum JobRunnerError {
     /// fails.
     UploadToBucketError { source: Box<dyn Error> },
 
+    /// Represents when a step written in a config file can't be run, most
+    /// likely for syntax reasons.
+    InvalidStepError { step: String },
+
     /// Represents all other cases of [io::Error].
     IOError(io::Error),
 }
@@ -42,6 +46,7 @@ impl Error for JobRunnerError {
             Self::ListFilesInBucketError { source } => Some(source.as_ref()),
             Self::DownloadFromBucketError { source } => Some(source.as_ref()),
             Self::UploadToBucketError { source } => Some(source.as_ref()),
+            Self::InvalidStepError { step: _ } => None,
             Self::IOError(_) => None,
         }
     }
@@ -89,6 +94,11 @@ impl Display for JobRunnerError {
             }
             Self::UploadToBucketError { source } => {
                 write!(f, "Failed to upload object to bucket: {}", source)
+            }
+            Self::InvalidStepError { step } => {
+                // TODO: Improve error message. Can we explain what about the
+                // step is invalid?
+                write!(f, "Invalid step in config file: \"{}\"", step)
             }
             Self::IOError(err) => err.fmt(f),
         }
