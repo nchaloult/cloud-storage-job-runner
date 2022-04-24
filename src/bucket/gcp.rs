@@ -1,31 +1,16 @@
+use crate::{
+    errors::JobRunnerError::{BucketCredentialsNotFoundError, InvalidPathError},
+    CloudServiceProvider, PathKeyInConfig, Result,
+};
+use async_trait::async_trait;
+use cloud_storage::{Client, ListRequest};
 use std::{
     env,
     error::Error,
-    fmt, fs, io,
+    fs, io,
     path::{Path, PathBuf},
 };
-
-use async_trait::async_trait;
-use cloud_storage::{Client, ListRequest};
 use tokio_stream::StreamExt;
-
-#[derive(Debug)]
-pub(crate) struct CredentialsNotFoundError {}
-
-impl Error for CredentialsNotFoundError {}
-
-impl fmt::Display for CredentialsNotFoundError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "Could not find service account credentials. Looked for a \
-        path to a JSON file on disk in the \"SERVICE_ACCOUNT\" and \
-        \"GOOGLE_APPLICATION_CREDENTIALS\" environment variables, and looked \
-        for credentials as JSON in the \"SERVICE_ACCOUNT_JSON\" and \
-        \"GOOGLE_APPLICATION_CREDENTIALS_JSON\" environment variables."
-        )
-    }
-}
 
 /// Verifies that credentials for a Google Cloud service account are present
 /// and accessible.
@@ -76,9 +61,9 @@ pub struct CloudStorageBucket {
 impl CloudStorageBucket {
     /// Returns a new `CloudStorageBucket` that's authenticated and ready
     /// to download and upload files.
-    pub(crate) fn new(bucket_name: String) -> Result<Self, CredentialsNotFoundError> {
+    pub fn new(bucket_name: String) -> Result<Self> {
         if !are_auth_creds_present() {
-            return Err(CredentialsNotFoundError {});
+            return Err(BucketCredentialsNotFoundError(CloudServiceProvider::GCP));
         }
         Ok(Self {
             bucket_name,
@@ -105,24 +90,18 @@ impl CloudStorageBucket {
         // TODO: Is this the right error we should be returning? Feels kinda
         // tightly coupled to our config. I feel like `download_object()`
         // shouldn't know that these Paths came from a config file.
-        let path_to_local_inputs_as_string =
-            path_to_local_inputs
-                .to_str()
-                .ok_or(super::super::InvalidPathError {
-                    path_key_name: "path_to_local_inputs".to_string(),
-                })?;
+        let path_to_local_inputs_as_string = path_to_local_inputs
+            .to_str()
+            .ok_or(InvalidPathError(PathKeyInConfig::LocalInputs))?;
         let mut local_file_path_as_string =
             format!("{}/{}", path_to_local_inputs_as_string, remote_file_path);
         if path_to_remote_inputs.components().next().is_some() {
             // TODO: Is this the right error we should be returning? Feels kinda
             // tightly coupled to our config. I feel like `download_object()`
             // shouldn't know that these Paths came from a config file.
-            let path_to_remote_inputs_as_string =
-                path_to_remote_inputs
-                    .to_str()
-                    .ok_or(super::super::InvalidPathError {
-                        path_key_name: "path_to_remote_inputs".to_string(),
-                    })?;
+            let path_to_remote_inputs_as_string = path_to_remote_inputs
+                .to_str()
+                .ok_or(InvalidPathError(PathKeyInConfig::RemoteInputs))?;
             // TODO: Is there a better way to do this than to go from PathBufs
             // to Strings and back to a PathBuf?
             local_file_path_as_string = remote_file_path.replace(
@@ -155,18 +134,12 @@ impl CloudStorageBucket {
         // TODO: Are these the right errors we should be returning? Feels kinda
         // tightly coupled to our config. I feel like `download_object()`
         // shouldn't know that these Paths came from a config file.
-        let path_to_local_outputs_as_string =
-            path_to_local_outputs
-                .to_str()
-                .ok_or(super::super::InvalidPathError {
-                    path_key_name: "path_to_local_outputs".to_string(),
-                })?;
-        let path_to_remote_outputs_as_string =
-            path_to_remote_outputs
-                .to_str()
-                .ok_or(super::super::InvalidPathError {
-                    path_key_name: "path_to_remote_outputs".to_string(),
-                })?;
+        let path_to_local_outputs_as_string = path_to_local_outputs
+            .to_str()
+            .ok_or(InvalidPathError(PathKeyInConfig::LocalOutputs))?;
+        let path_to_remote_outputs_as_string = path_to_remote_outputs
+            .to_str()
+            .ok_or(InvalidPathError(PathKeyInConfig::RemoteOutputs))?;
         // TODO: Is there a better way to do this than to go from PathBufs to
         // Strings?
         let remote_file_path_as_string = local_file_path_as_string.replace(
@@ -206,9 +179,7 @@ impl super::Bucket for CloudStorageBucket {
         let lr = if path_to_remote_inputs.components().next().is_some() {
             let path_to_remote_inputs_as_string = path_to_remote_inputs
                 .to_str()
-                .ok_or(super::super::InvalidPathError {
-                    path_key_name: "path_to_remote_inputs".to_string(),
-                })?
+                .ok_or(InvalidPathError(PathKeyInConfig::RemoteInputs))?
                 .to_string();
             ListRequest {
                 prefix: Some(path_to_remote_inputs_as_string),
