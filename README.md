@@ -11,6 +11,7 @@ Download files from a storage bucket in the cloud, run a job on each of them, an
      - Runs all the jobs defined in the config
    - `$ csjr -c path/to/config/file job-name`
      - Only runs the specified job
+   - Run `$ csjr -h` for more info
 
 ### Specifying Input and Output Directories
 
