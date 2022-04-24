@@ -16,6 +16,10 @@ pub enum JobRunnerError {
     /// contains non-UTF-8 characters, which is perfectly valid in some
     /// operating systems).
     InvalidPathError(PathKeyInConfig),
+
+    /// Represents when attempting to download a file from a bucket in the cloud
+    /// fails.
+    DownloadFromBucketError { source: Box<dyn Error> },
 }
 
 impl Error for JobRunnerError {
@@ -24,6 +28,7 @@ impl Error for JobRunnerError {
             Self::JobNotFoundError { job_name: _ } => None,
             Self::BucketCredentialsNotFoundError(_) => None,
             Self::InvalidPathError(_) => None,
+            Self::DownloadFromBucketError { source } => Some(source.as_ref()),
         }
     }
 }
@@ -57,6 +62,9 @@ impl Display for JobRunnerError {
                     "Value for \"{}\" in config file can't be stringified",
                     path_key
                 )
+            }
+            Self::DownloadFromBucketError { source } => {
+                write!(f, "Failed to download object from bucket: {}", source)
             }
         }
     }
