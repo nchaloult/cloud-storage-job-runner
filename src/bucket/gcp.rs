@@ -53,15 +53,15 @@ fn is_valid_json(contents: &str) -> bool {
     contents.starts_with('{') && contents.ends_with('}') && contents.is_ascii()
 }
 
-pub struct CloudStorageBucket {
-    bucket_name: String,
+pub struct CloudStorageBucket<'a> {
+    bucket_name: &'a str,
     client: Client,
 }
 
-impl CloudStorageBucket {
+impl<'a> CloudStorageBucket<'a> {
     /// Returns a new `CloudStorageBucket` that's authenticated and ready
     /// to download and upload files.
-    pub fn new(bucket_name: String) -> Result<Self> {
+    pub fn new(bucket_name: &'a str) -> Result<Self> {
         if !are_auth_creds_present() {
             return Err(BucketCredentialsNotFoundError(CloudServiceProvider::GCP));
         }
@@ -84,7 +84,7 @@ impl CloudStorageBucket {
         let contents = self
             .client
             .object()
-            .download(&self.bucket_name, remote_file_path)
+            .download(self.bucket_name, remote_file_path)
             .await?;
 
         // TODO: Is this the right error we should be returning? Feels kinda
@@ -154,7 +154,7 @@ impl CloudStorageBucket {
         self.client
             .object()
             .create(
-                &self.bucket_name,
+                self.bucket_name,
                 contents,
                 &remote_file_path_as_string,
                 &mime_type,
@@ -165,7 +165,7 @@ impl CloudStorageBucket {
 }
 
 #[async_trait]
-impl super::Bucket for CloudStorageBucket {
+impl super::Bucket for CloudStorageBucket<'_> {
     async fn download_inputs(
         &self,
         path_to_remote_inputs: &Path,
@@ -189,7 +189,7 @@ impl super::Bucket for CloudStorageBucket {
             ListRequest::default()
         };
         let mut object_list_stream =
-            Box::pin(self.client.object().list(&self.bucket_name, lr).await?);
+            Box::pin(self.client.object().list(self.bucket_name, lr).await?);
 
         while let Some(object_list) = object_list_stream.next().await {
             match object_list {
