@@ -17,6 +17,10 @@ pub enum JobRunnerError {
     /// operating systems).
     InvalidPathError(PathKeyInConfig),
 
+    /// Represents when attempting to list the files/object in a bucket in the
+    /// cloud fails.
+    ListFilesInBucketError { source: Box<dyn Error> },
+
     /// Represents when attempting to download a file from a bucket in the cloud
     /// fails.
     DownloadFromBucketError { source: Box<dyn Error> },
@@ -35,6 +39,7 @@ impl Error for JobRunnerError {
             Self::JobNotFoundError { job_name: _ } => None,
             Self::BucketCredentialsNotFoundError(_) => None,
             Self::InvalidPathError(_) => None,
+            Self::ListFilesInBucketError { source } => Some(source.as_ref()),
             Self::DownloadFromBucketError { source } => Some(source.as_ref()),
             Self::UploadToBucketError { source } => Some(source.as_ref()),
             Self::IOError(_) => None,
@@ -70,6 +75,13 @@ impl Display for JobRunnerError {
                     f,
                     "Value for \"{}\" in config file can't be stringified",
                     path_key
+                )
+            }
+            Self::ListFilesInBucketError { source } => {
+                write!(
+                    f,
+                    "Failed to list the files in the bucket at the specified location: {}",
+                    source
                 )
             }
             Self::DownloadFromBucketError { source } => {
