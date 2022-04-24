@@ -33,6 +33,10 @@ pub enum JobRunnerError {
     /// likely for syntax reasons.
     InvalidStepError { step: String },
 
+    /// Represents when a step executes with a non-zero status code. If `code`
+    /// is `None`, that means the step was terminated by a signal.
+    StepNonZeroStatusCodeError { step: String, code: Option<i32> },
+
     /// Represents all other cases of [io::Error].
     IOError(io::Error),
 }
@@ -47,6 +51,7 @@ impl Error for JobRunnerError {
             Self::DownloadFromBucketError { source } => Some(source.as_ref()),
             Self::UploadToBucketError { source } => Some(source.as_ref()),
             Self::InvalidStepError { step: _ } => None,
+            Self::StepNonZeroStatusCodeError { step: _, code: _ } => None,
             Self::IOError(_) => None,
         }
     }
@@ -100,6 +105,14 @@ impl Display for JobRunnerError {
                 // step is invalid?
                 write!(f, "Invalid step in config file: \"{}\"", step)
             }
+            Self::StepNonZeroStatusCodeError { step, code } => match code {
+                Some(code) => write!(
+                    f,
+                    "\"{}\" exited with a non-zero status code: {}",
+                    step, code
+                ),
+                None => write!(f, "\"{}\" was terminated by a signal", step),
+            },
             Self::IOError(err) => err.fmt(f),
         }
     }
