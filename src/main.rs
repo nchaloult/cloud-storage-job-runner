@@ -1,6 +1,5 @@
+use cloud_storage_job_runner::{pretty_print, Config, JobRunner};
 use std::{fs::File, path::PathBuf, process};
-
-use cloud_storage_job_runner::{pretty_print, Config, Context};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -28,11 +27,11 @@ async fn main() {
     let config_file = File::open(opt.config).expect("config file couldn't be opened");
     let config: Config =
         serde_yaml::from_reader(config_file).expect("config file's contents are invalid");
-    let mut ctx = Context::new(&config);
+    let job_runner = JobRunner::new(config);
 
     match opt.job_name {
         Some(j) => {
-            if let Err(e) = ctx.run_one(&j).await {
+            if let Err(e) = job_runner.run_one(&j).await {
                 if pretty_print::error(&e).is_err() {
                     eprintln!("Something went wrong displaying an error message");
                 }
@@ -40,7 +39,7 @@ async fn main() {
             }
         }
         None => {
-            if let Err(e) = ctx.run_all().await {
+            if let Err(e) = job_runner.run_all().await {
                 if pretty_print::error(&e).is_err() {
                     eprintln!("Something went wrong displaying an error message");
                 }
