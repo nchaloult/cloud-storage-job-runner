@@ -7,6 +7,27 @@ use std::{collections::HashMap, error::Error, path::PathBuf};
 
 type Result<T, E = JobRunnerError> = std::result::Result<T, E>;
 
+/// Representations of the different keys in a config file whose values are
+/// [PathBuf]s.
+#[derive(Debug)]
+enum PathKeyInConfig {
+    RemoteInputs,
+    LocalInputs,
+    LocalOutputs,
+    RemoteOutputs,
+}
+
+impl Display for PathKeyInConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PathKeyInConfig::RemoteInputs => write!(f, "remote_inputs"),
+            PathKeyInConfig::LocalInputs => write!(f, "local_inputs"),
+            PathKeyInConfig::LocalOutputs => write!(f, "local_outputs"),
+            PathKeyInConfig::RemoteOutputs => write!(f, "remote_outputs"),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub enum CloudServiceProvider {
     GCP,
