@@ -1,4 +1,4 @@
-use crate::CloudServiceProvider;
+use crate::{CloudServiceProvider, PathKeyInConfig};
 use std::{error::Error, fmt::Display};
 
 /// JobRunnerError enumerates all possible errors returned by this library.
@@ -11,6 +11,11 @@ pub enum JobRunnerError {
     /// Represents when the credentials to authenticate with a storage bucket in
     /// the cloud can't be found.
     BucketCredentialsNotFoundError(CloudServiceProvider),
+
+    /// Represents when a Path can't be stringified (typically because it
+    /// contains non-UTF-8 characters, which is perfectly valid in some
+    /// operating systems).
+    InvalidPathError(PathKeyInConfig),
 }
 
 impl Error for JobRunnerError {
@@ -18,6 +23,7 @@ impl Error for JobRunnerError {
         match self {
             Self::JobNotFoundError { job_name: _ } => None,
             Self::BucketCredentialsNotFoundError(_) => None,
+            Self::InvalidPathError(_) => None,
         }
     }
 }
@@ -44,6 +50,13 @@ impl Display for JobRunnerError {
                         )
                     }
                 }
+            }
+            Self::InvalidPathError(path_key) => {
+                write!(
+                    f,
+                    "Value for \"{}\" in config file can't be stringified",
+                    path_key
+                )
             }
         }
     }

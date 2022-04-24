@@ -10,7 +10,7 @@ type Result<T, E = JobRunnerError> = std::result::Result<T, E>;
 /// Representations of the different keys in a config file whose values are
 /// [PathBuf]s.
 #[derive(Debug)]
-enum PathKeyInConfig {
+pub enum PathKeyInConfig {
     RemoteInputs,
     LocalInputs,
     LocalOutputs,
