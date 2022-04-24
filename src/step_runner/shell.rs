@@ -4,16 +4,9 @@ use crate::{
 };
 use std::process;
 
-pub trait StepRunner {
-    /// Executes the provided `step` command as a child process. Echos the
-    /// child's `stdout` and `stderr` pipes, and blocks until the step
-    /// completes.
-    fn run_step(&self, step: &str) -> Result<()>;
-}
+pub struct Runner {}
 
-pub struct ShellStepRunner {}
-
-impl StepRunner for ShellStepRunner {
+impl super::StepRunner for Runner {
     fn run_step(&self, step: &str) -> Result<()> {
         // Build a process::Command.
         let mut iter = step.split(' ');
