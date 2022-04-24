@@ -1,8 +1,11 @@
+mod errors;
 pub mod pretty_print;
 
+use errors::JobRunnerError;
+use serde::Deserialize;
 use std::{collections::HashMap, error::Error, path::PathBuf};
 
-use serde::Deserialize;
+type Result<T, E = JobRunnerError> = std::result::Result<T, E>;
 
 #[derive(Debug, Deserialize)]
 pub enum CloudServiceProvider {
@@ -48,7 +51,7 @@ impl JobRunner {
     /// Fetches the [Job] with the name `job_name`, grabs the appropriate
     /// [bucket::Bucket] and [step_runner::StepRunner] implementations, and
     /// calls the job's `run()` method.
-    pub async fn run_one(&self, job_name: &str) -> Result<(), Box<dyn Error>> {
+    pub async fn run_one(&self, job_name: &str) -> Result<()> {
         todo!()
     }
 }
