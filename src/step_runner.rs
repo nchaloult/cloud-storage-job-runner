@@ -1,59 +1,26 @@
-use std::{error, fmt, process};
-
-#[derive(Debug)]
-struct InvalidStepError {
-    step: String,
-}
-
-impl error::Error for InvalidStepError {}
-
-impl fmt::Display for InvalidStepError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // TODO: Improve error message. Can we explain what about the step is
-        // invalid?
-        write!(f, "invalid step: \"{}\"", self.step)
-    }
-}
-
-#[derive(Debug)]
-struct NonZeroStatusCodeError {
-    step: String,
-    code: Option<i32>,
-}
-
-impl error::Error for NonZeroStatusCodeError {}
-
-impl fmt::Display for NonZeroStatusCodeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.code {
-            Some(code) => write!(
-                f,
-                "\"{}\" exited with a non-zero status code: {}",
-                self.step, code
-            ),
-            None => write!(f, "\"{}\" was terminated by a signal", self.step),
-        }
-    }
-}
+use crate::{
+    errors::JobRunnerError::{InvalidStepError, StepNonZeroStatusCodeError},
+    Result,
+};
+use std::process;
 
 pub trait StepRunner {
     /// Executes the provided `step` command as a child process. Echos the
     /// child's `stdout` and `stderr` pipes, and blocks until the step
     /// completes.
-    fn run_step(&self, step: &str) -> Result<(), Box<dyn error::Error>>;
+    fn run_step(&self, step: &str) -> Result<()>;
 }
 
 pub struct ShellStepRunner {}
 
 impl StepRunner for ShellStepRunner {
-    fn run_step(&self, step: &str) -> Result<(), Box<dyn error::Error>> {
+    fn run_step(&self, step: &str) -> Result<()> {
         // Build a process::Command.
         let mut iter = step.split(' ');
 
-        let program_name = iter.next().ok_or(InvalidStepError {
-            // TODO: Revisit this cloning. Can you get fancy with lifetimes?
-            step: step.to_string(),
-        })?;
+        let program_name = iter
+            .next()
+            .ok_or_else(|| InvalidStepError { step: step.into() })?;
         let mut command = &mut process::Command::new(program_name);
 
         for arg in iter {
@@ -70,10 +37,10 @@ impl StepRunner for ShellStepRunner {
         if status.success() {
             Ok(())
         } else {
-            Err(Box::new(NonZeroStatusCodeError {
-                step: step.to_string(),
+            Err(StepNonZeroStatusCodeError {
+                step: step.into(),
                 code: status.code(),
-            }))
+            })
         }
     }
 }
