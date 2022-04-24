@@ -21,6 +21,10 @@ pub enum JobRunnerError {
     /// fails.
     DownloadFromBucketError { source: Box<dyn Error> },
 
+    /// Represents when attempting to upload a file to a bucket in the cloud
+    /// fails.
+    UploadToBucketError { source: Box<dyn Error> },
+
     /// Represents all other cases of [io::Error].
     IOError(io::Error),
 }
@@ -32,6 +36,7 @@ impl Error for JobRunnerError {
             Self::BucketCredentialsNotFoundError(_) => None,
             Self::InvalidPathError(_) => None,
             Self::DownloadFromBucketError { source } => Some(source.as_ref()),
+            Self::UploadToBucketError { source } => Some(source.as_ref()),
             Self::IOError(_) => None,
         }
     }
@@ -69,6 +74,9 @@ impl Display for JobRunnerError {
             }
             Self::DownloadFromBucketError { source } => {
                 write!(f, "Failed to download object from bucket: {}", source)
+            }
+            Self::UploadToBucketError { source } => {
+                write!(f, "Failed to upload object to bucket: {}", source)
             }
             Self::IOError(err) => err.fmt(f),
         }
