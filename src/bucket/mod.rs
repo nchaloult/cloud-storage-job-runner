@@ -1,8 +1,8 @@
 pub mod gcp;
 
-use std::{error::Error, path::Path};
-
+use crate::Result;
 use async_trait::async_trait;
+use std::path::Path;
 
 #[async_trait]
 pub trait Bucket {
@@ -18,7 +18,7 @@ pub trait Bucket {
         &self,
         path_to_remote_inputs: &Path,
         path_to_local_inputs: &Path,
-    ) -> Result<(), Box<dyn Error>>;
+    ) -> Result<()>;
 
     /// Uploads the `path_to_local_outputs` directory, and all its contents,
     /// on disk to a cloud storage bucket at `path_to_remote_outputs`.
@@ -31,5 +31,5 @@ pub trait Bucket {
         &self,
         path_to_local_outputs: &Path,
         path_to_remote_outputs: &Path,
-    ) -> Result<(), Box<dyn Error>>;
+    ) -> Result<()>;
 }

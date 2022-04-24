@@ -1,13 +1,14 @@
 use crate::{
-    errors::JobRunnerError::{BucketCredentialsNotFoundError, InvalidPathError},
+    errors::JobRunnerError::{
+        BucketCredentialsNotFoundError, DownloadFromBucketError, InvalidPathError,
+        ListFilesInBucketError, UploadToBucketError,
+    },
     CloudServiceProvider, PathKeyInConfig, Result,
 };
 use async_trait::async_trait;
 use cloud_storage::{Client, ListRequest};
 use std::{
-    env,
-    error::Error,
-    fs, io,
+    env, fs, io,
     path::{Path, PathBuf},
 };
 use tokio_stream::StreamExt;
@@ -37,7 +38,7 @@ impl super::Bucket for CloudStorageBucket<'_> {
         &self,
         path_to_remote_inputs: &Path,
         path_to_local_inputs: &Path,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<()> {
         // If path_to_remote_inputs points to a folder inside the bucket, only
         // list the objects inside that folder; otherwise, list all objects in
         // the bucket.
@@ -55,8 +56,15 @@ impl super::Bucket for CloudStorageBucket<'_> {
         } else {
             ListRequest::default()
         };
-        let mut object_list_stream =
-            Box::pin(self.client.object().list(self.bucket_name, lr).await?);
+        let mut object_list_stream = Box::pin(
+            self.client
+                .object()
+                .list(self.bucket_name, lr)
+                .await
+                .map_err(|err| ListFilesInBucketError {
+                    source: Box::new(err),
+                })?,
+        );
 
         while let Some(object_list) = object_list_stream.next().await {
             match object_list {
@@ -72,7 +80,14 @@ impl super::Bucket for CloudStorageBucket<'_> {
                         }
                     }
                 }
-                Err(e) => return Err(Box::new(e)),
+                // TODO: Does this situation deserve it's own error type? I got
+                // lazy here and just reused the one we already had for listing
+                // objects.
+                Err(err) => {
+                    return Err(ListFilesInBucketError {
+                        source: Box::new(err),
+                    })
+                }
             }
         }
         Ok(())
@@ -82,7 +97,7 @@ impl super::Bucket for CloudStorageBucket<'_> {
         &self,
         path_to_local_outputs: &Path,
         path_to_remote_outputs: &Path,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<()> {
         for file_path in find_all_files(path_to_local_outputs)? {
             self.upload_object(&file_path, path_to_local_outputs, path_to_remote_outputs)
                 .await?;
@@ -101,12 +116,15 @@ impl<'a> CloudStorageBucket<'a> {
         remote_file_path: &str,
         path_to_remote_inputs: &Path,
         path_to_local_inputs: &Path,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<()> {
         let contents = self
             .client
             .object()
             .download(self.bucket_name, remote_file_path)
-            .await?;
+            .await
+            .map_err(|err| DownloadFromBucketError {
+                source: Box::new(err),
+            })?;
 
         // TODO: Is this the right error we should be returning? Feels kinda
         // tightly coupled to our config. I feel like `download_object()`
@@ -145,7 +163,7 @@ impl<'a> CloudStorageBucket<'a> {
         local_file_path: &Path,
         path_to_local_outputs: &Path,
         path_to_remote_outputs: &Path,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<()> {
         // TODO: Return an error with more context instead of panicking.
         // Something like: your operating system supports file paths that are
         // not valid unicode, and we can't deal lol.
@@ -180,7 +198,10 @@ impl<'a> CloudStorageBucket<'a> {
                 &remote_file_path_as_string,
                 &mime_type,
             )
-            .await?;
+            .await
+            .map_err(|err| UploadToBucketError {
+                source: Box::new(err),
+            })?;
         Ok(())
     }
 }
