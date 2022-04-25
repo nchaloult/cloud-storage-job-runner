@@ -1,9 +1,11 @@
+mod bucket;
 mod errors;
 pub mod pretty_print;
+mod step_runner;
 
-use errors::JobRunnerError;
+use errors::JobRunnerError::{self, InvalidPathError};
 use serde::Deserialize;
-use std::{collections::HashMap, error::Error, path::PathBuf};
+use std::{collections::HashMap, error::Error, fmt::Display, path::PathBuf};
 
 type Result<T, E = JobRunnerError> = std::result::Result<T, E>;
 
@@ -74,5 +76,87 @@ impl JobRunner {
     /// calls the job's `run()` method.
     pub async fn run_one(&self, job_name: &str) -> Result<()> {
         todo!()
+    }
+}
+
+impl Job {
+    /// Executes a job, from start to finish.
+    async fn run<B, S>(&self, bucket: &B, step_runner: &S) -> Result<()>
+    where
+        B: bucket::Bucket,
+        S: step_runner::StepRunner,
+    {
+        // TODO: Revisit these unwrap() calls.
+        //
+        // The situation is kinda weird since we're gonna check for an invalid
+        // path in bucket.download_inputs(). Honestly, need to revisit how we're
+        // handling errors to do with paths that can't be serialized as Unicode
+        // strings all across the project. We shouldn't be handling that in the
+        // bucket's impl logic.
+        pretty_print::status(
+            "Downloading",
+            &format!(
+                "\"{}\" to \"{}\"",
+                self.path_to_remote_inputs.to_str().unwrap(),
+                self.path_to_local_inputs.to_str().unwrap()
+            ),
+            true,
+        )?;
+        bucket
+            .download_inputs(&self.path_to_remote_inputs, &self.path_to_local_inputs)
+            .await?;
+        for step in self.get_steps()? {
+            pretty_print::status("Running", &format!("`{step}`"), true)?;
+            step_runner.run_step(&step)?;
+        }
+        // TODO: Same here: revisit these unwrap() calls.
+        //
+        // Same situation as before where bucket.upload_outputs() is handling
+        // invalid paths, but it really shouldn't.
+        pretty_print::status(
+            "Uploading",
+            &format!(
+                "\"{}\" to \"{}\"",
+                self.path_to_local_outputs.to_str().unwrap(),
+                self.path_to_remote_outputs.to_str().unwrap()
+            ),
+            true,
+        )?;
+        bucket
+            .upload_outputs(&self.path_to_local_outputs, &self.path_to_remote_outputs)
+            .await
+    }
+
+    /// Returns a list of this [Job]'s steps with all of the `[path_to_*_*]`
+    /// tags substituted with their corresponding values.
+    fn get_steps(&self) -> Result<Vec<String>> {
+        let path_to_remote_inputs_as_string = self
+            .path_to_remote_inputs
+            .to_str()
+            .ok_or(InvalidPathError(PathKeyInConfig::RemoteInputs))?;
+        let path_to_local_inputs_as_string = self
+            .path_to_local_inputs
+            .to_str()
+            .ok_or(InvalidPathError(PathKeyInConfig::LocalInputs))?;
+        let path_to_local_outputs_as_string = self
+            .path_to_local_outputs
+            .to_str()
+            .ok_or(InvalidPathError(PathKeyInConfig::LocalOutputs))?;
+        let path_to_remote_outputs_as_string = self
+            .path_to_remote_outputs
+            .to_str()
+            .ok_or(InvalidPathError(PathKeyInConfig::RemoteOutputs))?;
+
+        let mut steps = Vec::new();
+        for step in &self.steps {
+            // TODO: Revisit this. Is there a more modular way?
+            let s = step
+                .replace("[path_to_remote_inputs]", path_to_remote_inputs_as_string)
+                .replace("[path_to_local_inputs]", path_to_local_inputs_as_string)
+                .replace("[path_to_local_outputs]", path_to_local_outputs_as_string)
+                .replace("[path_to_remote_outputs]", path_to_remote_outputs_as_string);
+            steps.push(s);
+        }
+        Ok(steps)
     }
 }
