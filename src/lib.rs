@@ -5,7 +5,7 @@ mod step_runner;
 
 use errors::JobRunnerError::{self, InvalidPathError};
 use serde::Deserialize;
-use std::{collections::HashMap, error::Error, fmt::Display, path::PathBuf};
+use std::{collections::HashMap, error::Error, fmt::Display, io, path::PathBuf};
 
 type Result<T, E = JobRunnerError> = std::result::Result<T, E>;
 
@@ -76,6 +76,16 @@ impl JobRunner {
     /// calls the job's `run()` method.
     pub async fn run_one(&self, job_name: &str) -> Result<()> {
         todo!()
+    }
+
+    fn print_running_job_status_message(&mut self, job_name: &str) -> io::Result<()> {
+        self.job_counter += 1;
+        let num_jobs = self.config.jobs.len();
+        pretty_print::status(
+            &format!("[{}/{}]", self.job_counter, num_jobs),
+            &format!("Running {job_name}..."),
+            false,
+        )
     }
 }
 
