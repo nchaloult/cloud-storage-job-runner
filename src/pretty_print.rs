@@ -18,9 +18,7 @@ pub fn status(prefix: &str, msg: &dyn fmt::Display, is_indented: bool) -> io::Re
         write!(stderr, "{prefix}")?;
     }
     stderr.reset()?;
-    stderr.set_color(ColorSpec::new().set_bold(true))?;
-    writeln!(stderr, " {msg}")?;
-    stderr.reset()
+    writeln!(stderr, " {msg}")
 }
 
 pub fn error(msg: &dyn fmt::Display) -> io::Result<()> {
@@ -29,7 +27,5 @@ pub fn error(msg: &dyn fmt::Display) -> io::Result<()> {
     stderr.set_color(ColorSpec::new().set_bold(true).set_fg(Some(Red)))?;
     write!(stderr, "Error: ")?;
     stderr.reset()?;
-    stderr.set_color(ColorSpec::new().set_bold(true))?;
-    writeln!(stderr, "{msg}")?;
-    stderr.reset()
+    writeln!(stderr, "{msg}")
 }
