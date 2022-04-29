@@ -3,9 +3,9 @@ mod errors;
 pub mod pretty_print;
 mod step_runner;
 
-use errors::JobRunnerError::{self, InvalidPathError};
+use errors::JobRunnerError::{self, InvalidPathError, JobNotFoundError};
 use serde::Deserialize;
-use std::{collections::HashMap, error::Error, fmt::Display, io, path::PathBuf};
+use std::{collections::HashMap, error::Error, fmt::Display, path::PathBuf};
 
 type Result<T, E = JobRunnerError> = std::result::Result<T, E>;
 
@@ -74,18 +74,29 @@ impl JobRunner {
     /// Fetches the [Job] with the name `job_name`, grabs the appropriate
     /// [bucket::Bucket] and [step_runner::StepRunner] implementations, and
     /// calls the job's `run()` method.
-    pub async fn run_one(&self, job_name: &str) -> Result<()> {
-        todo!()
-    }
+    pub async fn run_one(&mut self, job_name: &str) -> Result<()> {
+        let job = self
+            .config
+            .jobs
+            .get(job_name)
+            .ok_or_else(|| JobNotFoundError {
+                job_name: job_name.into(),
+            })?;
+        let bucket = match job.cloud_service_provider {
+            CloudServiceProvider::GCP => bucket::gcp::CloudStorageBucket::new(&job.bucket_name)?,
+        };
+        let step_runner = step_runner::shell::Runner {};
 
-    fn print_running_job_status_message(&mut self, job_name: &str) -> io::Result<()> {
+        // Print "Running {job_name}" status message.
         self.job_counter += 1;
         let num_jobs = self.config.jobs.len();
         pretty_print::status(
             &format!("[{}/{}]", self.job_counter, num_jobs),
             &format!("Running {job_name}..."),
             false,
-        )
+        )?;
+
+        job.run(&bucket, &step_runner).await
     }
 }
 
