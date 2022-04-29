@@ -5,7 +5,7 @@ mod step_runner;
 
 use errors::JobRunnerError::{self, InvalidPathError, JobNotFoundError};
 use serde::Deserialize;
-use std::{collections::HashMap, error::Error, fmt::Display, path::PathBuf};
+use std::{collections::HashMap, error::Error, fmt::Display, io, path::PathBuf};
 
 type Result<T, E = JobRunnerError> = std::result::Result<T, E>;
 
@@ -51,22 +51,26 @@ pub struct Config {
     pub jobs: HashMap<String, Job>,
 }
 
-pub struct JobRunner {
-    config: Config,
+pub struct JobRunner<'a> {
+    config: &'a Config,
     /// Counter that keeps track of which job we're currently running.
     job_counter: u8,
 }
 
-impl JobRunner {
-    pub fn new(config: Config) -> Self {
+impl<'a> JobRunner<'a> {
+    pub fn new(config: &'a Config) -> Self {
         Self {
             config,
             job_counter: 0,
         }
     }
 
-    pub async fn run_all(&self) -> Result<(), Box<dyn Error>> {
-        todo!()
+    /// Runs all jobs.
+    pub async fn run_all(&mut self) -> Result<(), Box<dyn Error>> {
+        for j in self.config.jobs.keys() {
+            self.run_one(j).await?;
+        }
+        Ok(())
     }
 
     /// Runs the job with the provided `job_name`.
@@ -87,16 +91,18 @@ impl JobRunner {
         };
         let step_runner = step_runner::shell::Runner {};
 
-        // Print "Running {job_name}" status message.
+        self.print_running_job_status_message(job_name)?;
+        job.run(&bucket, &step_runner).await
+    }
+
+    fn print_running_job_status_message(&mut self, job_name: &str) -> io::Result<()> {
         self.job_counter += 1;
         let num_jobs = self.config.jobs.len();
         pretty_print::status(
             &format!("[{}/{}]", self.job_counter, num_jobs),
             &format!("Running {job_name}..."),
             false,
-        )?;
-
-        job.run(&bucket, &step_runner).await
+        )
     }
 }
 

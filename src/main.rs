@@ -27,7 +27,7 @@ async fn main() {
     let config_file = File::open(opt.config).expect("config file couldn't be opened");
     let config: Config =
         serde_yaml::from_reader(config_file).expect("config file's contents are invalid");
-    let mut job_runner = JobRunner::new(config);
+    let mut job_runner = JobRunner::new(&config);
 
     match opt.job_name {
         Some(j) => {
