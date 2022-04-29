@@ -25,7 +25,7 @@ pub fn error(msg: &dyn fmt::Display) -> io::Result<()> {
     let mut stderr = StandardStream::stderr(ColorChoice::Auto);
     stderr.reset()?; // Just in case.
     stderr.set_color(ColorSpec::new().set_bold(true).set_fg(Some(Red)))?;
-    write!(stderr, "Error: ")?;
+    write!(stderr, "error: ")?;
     stderr.reset()?;
     writeln!(stderr, "{msg}")
 }
