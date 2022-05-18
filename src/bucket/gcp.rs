@@ -237,8 +237,7 @@ fn find_all_files(dir: &Path) -> io::Result<Vec<PathBuf>> {
             let entry = entry?;
             let path = entry.path();
             if path.is_dir() {
-                // TODO: Should we be using extend()?
-                files.append(&mut find_all_files(&path)?)
+                files.extend(find_all_files(&path)?);
             } else {
                 files.push(path);
             }
