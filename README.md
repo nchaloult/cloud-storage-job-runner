@@ -13,6 +13,25 @@ Download files from a storage bucket in the cloud, run a job on each of them, an
      - Only runs the specified job
    - Run `$ csjr -h` for more info
 
+```
+cloud-storage-job-runner 0.1.0
+Nick Chaloult <nchaloult.com>
+Download files from a storage bucket in the cloud, run a job on each of them, and upload the results back to the cloud.
+
+USAGE:
+    csjr --config <config> [job-name]
+
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+
+OPTIONS:
+    -c, --config <config>    Path to config file
+
+ARGS:
+    <job-name>    Name of job to run. If not present, runs all jobs specified in the provided config file
+```
+
 ### Specifying Input and Output Directories
 
 When `csjr` downloads files from the cloud, it downloads an entire folder specified by the job's `path-to-remote-inputs`. It saves that folder to disk at the job's specified `path-to-local-inputs` directory.
